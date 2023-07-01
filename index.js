@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+require("dotenv").config();
 var mongoose = require("mongoose");
 require("./DB/config");
 const User = require("./DB/models/User");
@@ -17,16 +18,29 @@ const orderStatus = require("./DB/models/orderfilter");
 const testProfile = require("./DB/models/test");
 const { request } = require("express");
 const fileUpload = require("express-fileupload");
+const connectDatabase = require("./DB/config");
 var moment = require("moment");
 app.use(express.json());
 app.use(fileUpload());
-
+console.log("here");
 var options = {
   origin: "*",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   preflightContinue: false,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
 };
+
+connectDatabase()
+  .then(() => {
+    app.listen(process.env.PORT, () => {
+      console.log(
+        `Server started on Port : ${process.env.PORT} in ${process.env.NODE_ENV}`
+      );
+    });
+  })
+  .catch((err) => {
+    console.log(err);
+  });
 
 app.use(cors(options));
 
@@ -57,7 +71,7 @@ app.post("/login", async (req, resp) => {
         resp.send(emp);
       } else {
         resp.send({
-          result: "No user found. Please enter correct email & password"
+          result: "No user found. Please enter correct email & password",
         });
       }
     }
@@ -76,7 +90,7 @@ app.post("/getprofile", async (req, resp) => {
       resp.send(profile);
     } else {
       resp.send({
-        result: "No user found. Please enter correct email & password"
+        result: "No user found. Please enter correct email & password",
       });
     }
   } else {
@@ -95,8 +109,8 @@ app.patch("/updateprofile", async (req, resp) => {
       $set: {
         name: Ufirstname,
         lastname: lastname,
-        contact: Ucontact
-      }
+        contact: Ucontact,
+      },
     },
     { new: true }
   );
@@ -111,19 +125,18 @@ app.post("/sendorderemail", async (req, resp) => {
       service: "gmail",
       auth: {
         user: "gupta.shubhanshu007@gmail.com",
-        pass: "bjzvvlumhuimipwq"
-      }
+        pass: "bjzvvlumhuimipwq",
+      },
     });
 
     let message = {
       from: "gupta.shubhanshu007@gmail.com",
       to: req.body.uemail,
       subject: "Thanks For Your Order With Nashcard",
-      text:
-        "Thank you for your order with Nashcard. We will send you an email with order detail link. So, you can track your order. "
+      text: "Thank you for your order with Nashcard. We will send you an email with order detail link. So, you can track your order. ",
     };
 
-    transporter.sendMail(message, function(error, info) {
+    transporter.sendMail(message, function (error, info) {
       if (error) {
         resp.status(500).json("Email sent: " + info.response);
       } else {
@@ -188,8 +201,8 @@ app.post("/order", async (req, resp) => {
         {
           noteid: req.body.noteid,
           adminid: req.body.adminid,
-          notes: req.body.notes
-        }
+          notes: req.body.notes,
+        },
       ],
       grades: [
         // {
@@ -199,7 +212,7 @@ app.post("/order", async (req, resp) => {
         //   // description: req.body.description,
         //   // gradeDate: req.body.gradeDate
         // }
-      ]
+      ],
     };
     console.log(neworder);
     console.log(validuser);
@@ -227,7 +240,7 @@ app.post("/addcard", async (req, resp) => {
       cardnumber: req.body.cardnumber,
       playername: req.body.playername,
       attribute: req.body.attribute,
-      totalDV: req.body.totalDV
+      totalDV: req.body.totalDV,
     };
 
     const newUser = await User.findOneAndUpdate(
@@ -285,7 +298,7 @@ app.post("/getcarddetails/:_id/", async (req, resp) => {
       .json({ error: "User with that email doesn't exists" });
   }
 
-  let card = user.cards.filter(card => {
+  let card = user.cards.filter((card) => {
     if (_id === card._id.toString()) {
       return card;
     }
@@ -303,7 +316,7 @@ app.delete("/dltCards/:id", async (req, resp) => {
   const cardid = req.params.id;
   const userid = req.body.userid;
   const getuser = await User.findOne({ userid });
-  const dltuser = getuser.cards.filter(cards => {
+  const dltuser = getuser.cards.filter((cards) => {
     if (cards._id.toString() !== cardid) {
       return cards;
     }
@@ -321,8 +334,8 @@ app.patch("/updatePSASUB", async (req, resp) => {
     {
       $set: {
         "orders.$.PSASub": PSASub,
-        "orders.$.orderStatus": orderstatus
-      }
+        "orders.$.orderStatus": orderstatus,
+      },
     },
     { new: true }
   );
@@ -341,7 +354,7 @@ app.patch("/updatecard/:id/", async (req, resp) => {
     playername,
     attribute,
     totalDV,
-    cardnumber
+    cardnumber,
   } = req.body;
 
   const newUser = await User.findOneAndUpdate(
@@ -354,8 +367,8 @@ app.patch("/updatecard/:id/", async (req, resp) => {
         "cards.$.playername": playername,
         "cards.$.attribute": attribute,
         "cards.$.totalDV": totalDV,
-        "cards.$.brand": brand
-      }
+        "cards.$.brand": brand,
+      },
     },
     { new: true }
   );
@@ -373,8 +386,8 @@ app.patch("/updateorderfinal/:orderid", async (req, resp) => {
       $set: {
         "orders.$.insuranceammount": insuranceammount,
         "orders.$.textmessagealert": textalert,
-        "orders.$.isordercomplete": true
-      }
+        "orders.$.isordercomplete": true,
+      },
     },
     { new: true }
   );
@@ -401,7 +414,7 @@ app.patch("/updateOrderFromAdmin/:orderid", async (req, resp) => {
     NumberOfKicksfromservicelevel,
     Kicksfromreview,
     NumberofReviewPasses,
-    PassesPrice
+    PassesPrice,
   } = req.body;
   const newUser = await User.findOneAndUpdate(
     { "orders.orderid": orderid, "orders.userid": userid },
@@ -420,8 +433,8 @@ app.patch("/updateOrderFromAdmin/:orderid", async (req, resp) => {
         "orders.$.NumberOfKicksfromservicelevel": NumberOfKicksfromservicelevel,
         "orders.$.Kicksfromreview": Kicksfromreview,
         "orders.$.NumberofReviewPasses": NumberofReviewPasses,
-        "orders.$.PassesPrice": PassesPrice
-      }
+        "orders.$.PassesPrice": PassesPrice,
+      },
     },
     { new: true }
   );
@@ -440,7 +453,7 @@ app.post("/emailsend", async (req, resp) => {
       let otpData = new OTP({
         email: req.body.email,
         otp: otpcode,
-        expirein: new Date().getTime() + 300 * 1000
+        expirein: new Date().getTime() + 300 * 1000,
       });
       let otpResponse = await otpData.save();
 
@@ -448,18 +461,18 @@ app.post("/emailsend", async (req, resp) => {
         service: "gmail",
         auth: {
           user: "gupta.shubhanshu007@gmail.com",
-          pass: "bjzvvlumhuimipwq"
-        }
+          pass: "bjzvvlumhuimipwq",
+        },
       });
 
       let message = {
         from: "gupta.shubhanshu007@gmail.com",
         to: req.body.email,
         subject: "Verify OTP Mail",
-        text: "Verify Your OTP With Nashcard and Your OTP Is: " + otpcode + "."
+        text: "Verify Your OTP With Nashcard and Your OTP Is: " + otpcode + ".",
       };
 
-      transporter.sendMail(message, function(error, info) {
+      transporter.sendMail(message, function (error, info) {
         if (error) {
           resp.status(500).json("Email sent: " + info.response);
         } else {
@@ -480,7 +493,7 @@ app.post("/changepassword", async (req, resp) => {
   const password = req.body.newPassword;
   let data = await otp.find({
     email: email,
-    Otp: Otp
+    Otp: Otp,
   });
 
   let responseType = "";
@@ -510,8 +523,8 @@ app.patch("/updateOrderStaus", async (req, resp) => {
     { "orders.orderid": orderid },
     {
       $set: {
-        "orders.$.orderStatus": orderStatus
-      }
+        "orders.$.orderStatus": orderStatus,
+      },
     },
     { new: true }
   );
@@ -528,22 +541,22 @@ app.post("/filterGradeList", async (req, resp) => {
   //step -1 to check subid
   if (subid) {
     user = await User.find({
-      "orders.PSASub": subid
+      "orders.PSASub": subid,
     }).select("orders");
     length = user.length;
   }
 
   if (length > 0) {
-    user.forEach(Nuser => {
-      Nuser.orders.forEach(Norder => {
-        Norder.grades.forEach(Ngrade => {
+    user.forEach((Nuser) => {
+      Nuser.orders.forEach((Norder) => {
+        Norder.grades.forEach((Ngrade) => {
           allGrades.push(Ngrade);
         });
       });
     });
 
     if (orderid) {
-      finalList = allGrades.filter(Lorderid => {
+      finalList = allGrades.filter((Lorderid) => {
         if (Lorderid.orderid === orderid) {
           return Lorderid;
         }
@@ -556,7 +569,7 @@ app.post("/filterGradeList", async (req, resp) => {
     }
 
     if (cert) {
-      NewfinalLIst = allGrades.filter(Lcer => {
+      NewfinalLIst = allGrades.filter((Lcer) => {
         if (Lcer.cert === cert) {
           return Lcer;
         }
@@ -617,10 +630,10 @@ app.post("/gradelistbyuserid", async (req, resp) => {
 
   let allGrades = [];
   let PSASub = "";
-  user.forEach(Nuser => {
-    Nuser.orders.forEach(Norder => {
+  user.forEach((Nuser) => {
+    Nuser.orders.forEach((Norder) => {
       PSASub = Norder.PSASub;
-      Norder.grades.forEach(Ngrade => {
+      Norder.grades.forEach((Ngrade) => {
         allGrades.push(Ngrade);
       });
     });
@@ -644,7 +657,7 @@ app.post("/allgradelist", async (req, resp) => {
   console.log(endDate);
   if (datefilter) {
     user = await User.find({
-      "orders.$.grades.$.gradeDate": startdate
+      "orders.$.grades.$.gradeDate": startdate,
     }).select("orders");
     console.log(datefilter);
   } else {
@@ -660,10 +673,10 @@ app.post("/allgradelist", async (req, resp) => {
 
   let allGrades = [];
   let orderstatus = [];
-  user.forEach(Nuser => {
-    Nuser.orders.forEach(Norder => {
+  user.forEach((Nuser) => {
+    Nuser.orders.forEach((Norder) => {
       orderstatus = Norder.orderStatus;
-      Norder.grades.forEach(Ngrade => {
+      Norder.grades.forEach((Ngrade) => {
         allGrades.push(Ngrade);
       });
     });
@@ -688,7 +701,7 @@ app.post("/addgrade", async (req, resp) => {
     PSAUpchargeAmmount,
     frontImage,
     backimage,
-    poppedDate
+    poppedDate,
   } = req.body;
 
   let newdate = moment(poppedDate);
@@ -700,7 +713,7 @@ app.post("/addgrade", async (req, resp) => {
       .json({ error: "User with that email doesn't exists" });
   }
 
-  let orderFound = user.orders.filter(order => {
+  let orderFound = user.orders.filter((order) => {
     if (order.orderid === orderid) {
       return order;
     }
@@ -721,7 +734,7 @@ app.post("/addgrade", async (req, resp) => {
     PSAsub: PSAsub,
     PSAUpchargeAmmount: PSAUpchargeAmmount,
     frontImage: frontImage,
-    backimage: backimage
+    backimage: backimage,
   };
 
   orderFound.grades.push(orderGrade);
@@ -742,7 +755,7 @@ app.post("/addnotes", async (req, resp) => {
       .status(401)
       .json({ error: "User with that email doesn't exists" });
   }
-  let orderFound = user.orders.filter(order => {
+  let orderFound = user.orders.filter((order) => {
     if (order.orderid === orderid) {
       return order;
     }
@@ -756,7 +769,7 @@ app.post("/addnotes", async (req, resp) => {
   const orderNote = {
     noteid: Math.floor(Math.random() * 10000),
     adminid: Math.floor(Math.random() * 1000000),
-    notes: notes
+    notes: notes,
   };
   orderFound.ordernotes.push(orderNote);
   const newUser = await User.findOneAndUpdate(
@@ -780,7 +793,7 @@ app.delete("/deleteGrade", async (req, resp) => {
       .json({ error: "User with that email doesn't exists" });
   }
 
-  let orderFound = user.orders.filter(order => {
+  let orderFound = user.orders.filter((order) => {
     if (order.orderid === orderid) {
       return order;
     }
@@ -792,7 +805,7 @@ app.delete("/deleteGrade", async (req, resp) => {
       .status(401)
       .json({ error: "order with that id does not exists" });
   }
-  let orderGrades = orderFound.grades.filter(grade => {
+  let orderGrades = orderFound.grades.filter((grade) => {
     if (grade._id != _id) {
       //console.log(grade._id);
       return grade;
@@ -816,7 +829,7 @@ app.delete("/deletenote", async (req, resp) => {
       .status(401)
       .json({ error: "User with that email doesn't exists" });
   }
-  let orderFound = user.orders.filter(order => {
+  let orderFound = user.orders.filter((order) => {
     if (order.orderid === orderid) {
       return order;
     }
@@ -829,7 +842,7 @@ app.delete("/deletenote", async (req, resp) => {
       .status(401)
       .json({ error: "order with that id does not exists" });
   }
-  let ordernotes = orderFound.ordernotes.filter(note => {
+  let ordernotes = orderFound.ordernotes.filter((note) => {
     if (note.noteid !== noteid) {
       return note;
     }
@@ -852,7 +865,7 @@ app.post("/addservicelevel", async (req, resp) => {
 
 app.post("/getorderdetails", async (req, resp) => {
   let orderdetails = await User.findOne({
-    userid: req.body.userid
+    userid: req.body.userid,
   });
   if (orderdetails) {
     resp.send(orderdetails);
@@ -863,7 +876,7 @@ app.post("/getorderdetails", async (req, resp) => {
 
 app.post("/profilechangepassword", async (req, resp) => {
   let user = await User.findOne({
-    email: req.body.email
+    email: req.body.email,
   });
   user.password = req.body.password;
   user.save();
@@ -879,7 +892,7 @@ app.post("/submitreview", async (req, resp) => {
 
 app.post("/getreviewlist", async (req, resp) => {
   let reviewlist = await reviews.find({
-    userid: req.body.userid
+    userid: req.body.userid,
   });
   if (reviewlist) {
     resp.send(reviewlist);
@@ -897,7 +910,7 @@ app.post("/addhelp", async (req, resp) => {
 
 app.post("/gethelplist", async (req, resp) => {
   let helplist = await uhelp.find({
-    userid: req.body.userid
+    userid: req.body.userid,
   });
   if (helplist) {
     resp.send(helplist);
@@ -908,7 +921,7 @@ app.post("/gethelplist", async (req, resp) => {
 
 app.post("/getorderlist", async (req, resp) => {
   let user = await User.find({
-    userid: req.body.userid
+    userid: req.body.userid,
   }).select("-cards");
 
   console.log(user);
@@ -934,7 +947,7 @@ app.post("/getadminfilterorderlist", async (req, resp) => {
   const status = req.body.orderStatus;
   console.log(status);
   let user = await User.find({
-    "orders.orderStatus": status
+    "orders.orderStatus": status,
   }).exec();
   if (user) {
     resp.send(user);
@@ -953,10 +966,10 @@ app.post("/getGradingListbyorderid", async (req, resp) => {
       orders: {
         grades: {
           $elemMatch: {
-            orderid: orderid
-          }
-        }
-      }
+            orderid: orderid,
+          },
+        },
+      },
     })
     .toArray();
   resp.status(200).json({ isEmpty: false, orders: orders });
@@ -966,12 +979,12 @@ app.post("/getOrderAndCardDetails/:uid", async (req, resp) => {
   const userid = req.params.uid;
   const orderid = req.body.orderid;
   let user = await User.findOne({
-    userid: userid
+    userid: userid,
   });
 
   let orders = user.orders;
 
-  orders = user.orders.filter(orders => {
+  orders = user.orders.filter((orders) => {
     if (orderid === orders.orderid.toString()) {
       return orders;
     }
@@ -1006,7 +1019,7 @@ app.post("/ordernotelist/:id", async (req, res) => {
   const userid = req.params.id;
   const orderid = req.body.orderid;
   const user = await User.findOne({
-    userid: userid
+    userid: userid,
   });
   if (!user) {
     return res
@@ -1014,7 +1027,7 @@ app.post("/ordernotelist/:id", async (req, res) => {
       .json({ error: "User with that email doesn't exists" });
   }
 
-  let order = user.orders.filter(order => {
+  let order = user.orders.filter((order) => {
     if (orderid === order.orderid.toString()) {
       return order;
     }
@@ -1056,8 +1069,8 @@ app.patch("/markorderpaid", async (req, resp) => {
     { "orders.orderid": orderid },
     {
       $set: {
-        "orders.$.isorderpaid": isorderpaid
-      }
+        "orders.$.isorderpaid": isorderpaid,
+      },
     },
     { new: true }
   );
@@ -1084,7 +1097,7 @@ app.post("/getOrderAndCustomerDetails/", async (req, resp) => {
     userContact: userContact,
     totalcards: totalcards,
     ordercount: ordercount,
-    orders: orders
+    orders: orders,
   });
 });
 
@@ -1096,8 +1109,8 @@ app.patch("/updateOrderStatus", async (req, resp) => {
     { "orders.orderid": _id },
     {
       $set: {
-        "orders.$.orderStatus": orderStatus
-      }
+        "orders.$.orderStatus": orderStatus,
+      },
     },
     { new: true }
   );
@@ -1119,18 +1132,18 @@ app.patch("/updateOrderStatus", async (req, resp) => {
         service: "gmail",
         auth: {
           user: "gupta.shubhanshu007@gmail.com",
-          pass: "bjzvvlumhuimipwq"
-        }
+          pass: "bjzvvlumhuimipwq",
+        },
       });
 
       let message = {
         from: "gupta.shubhanshu007@gmail.com",
         to: uemail,
         subject: mailsubject,
-        text: mailtext
+        text: mailtext,
       };
 
-      transporter.sendMail(message, function(error, info) {
+      transporter.sendMail(message, function (error, info) {
         if (error) {
           resp.status(500).json("Email sent: " + info.response);
         } else {
@@ -1187,18 +1200,18 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
       service: "gmail",
       auth: {
         user: "gupta.shubhanshu007@gmail.com",
-        pass: "bjzvvlumhuimipwq"
-      }
+        pass: "bjzvvlumhuimipwq",
+      },
     });
 
     let message = {
       from: "gupta.shubhanshu007@gmail.com",
       to: req.body.uemail,
       subject: mailsubject,
-      text: mailtext
+      text: mailtext,
     };
 
-    transporter.sendMail(message, function(error, info) {
+    transporter.sendMail(message, function (error, info) {
       if (error) {
         resp.status(500).json("Email sent: " + info.response);
       } else {
@@ -1225,7 +1238,7 @@ app.post("/userUpload", (req, res) => {
   console.log(userData);
   let uploadPath = __dirname + "/uploads/" + filename;
   console.log(uploadPath);
-  file.mv(uploadPath, err => {
+  file.mv(uploadPath, (err) => {
     if (err) {
       return res.send(err);
     }
@@ -1234,12 +1247,12 @@ app.post("/userUpload", (req, res) => {
   try {
     fs.createReadStream(uploadPath)
       .pipe(csv.parse({ headers: true }))
-      .on("error", err => console.log(err))
-      .on("data", row => {
+      .on("error", (err) => console.log(err))
+      .on("data", (row) => {
         row["_id"] = new mongoose.Types.ObjectId();
         allUsers.push({ ...row });
       })
-      .on("end", async rowCount => {
+      .on("end", async (rowCount) => {
         for (i = 0; i <= rowCount; i++) {
           let r1 = new testProfile(allUsers[i]);
           let result = await r1.save();
@@ -1267,7 +1280,7 @@ app.post("/uploadGrades", (req, res) => {
   let userData = { userid: req.body.userid, orderid: req.body.orderid };
   console.log(filename, userData.userid, userData.orderid);
   let uploadPath = __dirname + "/uploads/" + filename;
-  file.mv(uploadPath, err => {
+  file.mv(uploadPath, (err) => {
     if (err) {
       return res.send(err);
     }
@@ -1276,16 +1289,16 @@ app.post("/uploadGrades", (req, res) => {
   try {
     fs.createReadStream(uploadPath)
       .pipe(csv.parse({ headers: true }))
-      .on("error", err => console.log(err))
-      .on("data", row => {
+      .on("error", (err) => console.log(err))
+      .on("data", (row) => {
         allGrades.push({ ...userData, ...row });
       })
-      .on("end", async rowCount => {
+      .on("end", async (rowCount) => {
         const user = await User.findOne({
-          userid: userData.userid
+          userid: userData.userid,
         }).select("orders");
 
-        let orderFound = user.orders.filter(order => {
+        let orderFound = user.orders.filter((order) => {
           if (order.orderid === userData.orderid) {
             return order;
           }
@@ -1326,7 +1339,7 @@ app.post("/upload", (req, res) => {
   let allCards = [];
   let userData = { userid: req.body.userid, orderid: req.body.orderid };
   let uploadPath = __dirname + "/uploads/" + filename;
-  file.mv(uploadPath, err => {
+  file.mv(uploadPath, (err) => {
     if (err) {
       return res.send(err);
     }
@@ -1335,11 +1348,11 @@ app.post("/upload", (req, res) => {
   try {
     fs.createReadStream(uploadPath)
       .pipe(csv.parse({ headers: true }))
-      .on("error", err => console.log(err))
-      .on("data", row => {
+      .on("error", (err) => console.log(err))
+      .on("data", (row) => {
         allCards.push({ ...userData, ...row });
       })
-      .on("end", async rowCount => {
+      .on("end", async (rowCount) => {
         const user = await User.findOne({ userid: userData.userid });
         user.cards.push(...allCards);
         console.log(user);
