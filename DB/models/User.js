@@ -10,6 +10,10 @@ const userschema = new mongoose.Schema({
   contact: { type: String },
   isactive: { type: Boolean },
   userid: { type: Number },
+  address: { type: String,default:"" },
+  city: { type: String,default:"" },
+  pincode: { type: Number,default:"" },
+  state: { type: String,default:"" },
   orders: [orderschema],
   cards: [cardschema]
 });

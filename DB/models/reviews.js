@@ -10,14 +10,23 @@ const reviewschema = new mongoose.Schema({
   companyname: {
     type: String
   },
-  cardtye: {
+  cardtype: {
     type: String
   },
   comment: {
     type: String
   },
   isactive: {
-    type: Boolean
+    type: Boolean,default:true
+  },
+  status: {
+    type: String
+  },
+  submittedcard: {
+    type: Number
+  },
+  netdv:{
+    type:Number
   }
-});
+},{ timestamps: true });
 module.exports = mongoose.model("review", reviewschema);

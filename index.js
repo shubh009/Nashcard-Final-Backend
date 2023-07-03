@@ -2,7 +2,6 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 var mongoose = require("mongoose");
-require("./DB/config");
 const User = require("./DB/models/User");
 const OTP = require("./DB/models/otp");
 const { orderModel } = require("./DB/models/gradingorder");
@@ -10,19 +9,24 @@ const nodemailer = require("nodemailer");
 const servicelevel = require("./DB/models/servicelevel");
 const empLogin = require("./DB/models/emp");
 const ureviews = require("./DB/models/reviews");
+const Grades = require("./DB/models/grades");
 const cors = require("cors");
 const otp = require("./DB/models/otp");
 const reviews = require("./DB/models/reviews");
 const uhelp = require("./DB/models/uhelp");
 const orderStatus = require("./DB/models/orderfilter");
 const testProfile = require("./DB/models/test");
+const project = require("./DB/models/project");
 const { request } = require("express");
 const fileUpload = require("express-fileupload");
-const connectDatabase = require("./DB/config");
+const psasubtracker = require("./DB/models/psasubtracker");
+const axios = require("axios");
+const { ObjectId } = require("mongodb");
 var moment = require("moment");
+const connectDatabase = require("./DB/config");
 app.use(express.json());
+
 app.use(fileUpload());
-console.log("here");
 var options = {
   origin: "*",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
@@ -32,6 +36,7 @@ var options = {
 
 connectDatabase()
   .then(() => {
+    console.log(process.env.PORT);
     app.listen(process.env.PORT, () => {
       console.log(
         `Server started on Port : ${process.env.PORT} in ${process.env.NODE_ENV}`
@@ -102,14 +107,23 @@ app.patch("/updateprofile", async (req, resp) => {
   const { userid, lastname } = req.body;
   const Ufirstname = req.body.name;
   const Ucontact = req.body.contact;
-
+  const address = req.body.address;
+  const city = req.body.city;
+  const state = req.body.stat;
+  const pincode = req.body.pincode;
+  const email = req.body.email;
   let user = await User.findOneAndUpdate(
     { userid: userid },
     {
       $set: {
         name: Ufirstname,
         lastname: lastname,
-        contact: Ucontact,
+        contact: parseInt(Ucontact),
+        email: email,
+        address: address,
+        city: city,
+        state: state,
+        pincode: parseInt(pincode),
       },
     },
     { new: true }
@@ -214,8 +228,7 @@ app.post("/order", async (req, resp) => {
         // }
       ],
     };
-    console.log(neworder);
-    console.log(validuser);
+
     validuser.orders.push(neworder);
     validuser.save();
     resp.status(200).json(validuser);
@@ -253,7 +266,7 @@ app.post("/addcard", async (req, resp) => {
 
     // validuser.cards.push(newcard);
     // validuser.save();
-    console.log(newUser);
+
     //resp.status(200).json(newUser);
 
     const user = await User.findOne({ userid: req.body.userid });
@@ -263,7 +276,6 @@ app.post("/addcard", async (req, resp) => {
         .json({ error: "User with that email doesn't exists" });
     }
     const cards = user.cards;
-    console.log(cards);
     if (cards.length === 0) {
       return resp.status(200).json({ isEmpty: true });
     } else {
@@ -280,7 +292,7 @@ app.post("/getcardlist", async (req, resp) => {
       .json({ error: "User with that email doesn't exists" });
   }
   const cards = user.cards;
-  console.log(cards);
+
   if (cards.length === 0) {
     return resp.status(200).json({ isEmpty: true });
   } else {
@@ -304,7 +316,6 @@ app.post("/getcarddetails/:_id/", async (req, resp) => {
     }
   });
   card = card[0];
-  console.log(card);
   if (card.length === 0) {
     return resp.status(200).json({ isEmpty: true });
   } else {
@@ -345,7 +356,7 @@ app.patch("/updatePSASUB", async (req, resp) => {
 
 app.patch("/updatecard/:id/", async (req, resp) => {
   const cardid = req.params.id;
-  console.log(cardid);
+
   const {
     userid,
     qty,
@@ -517,8 +528,7 @@ app.post("/changepassword", async (req, resp) => {
 
 app.patch("/updateOrderStaus", async (req, resp) => {
   const { orderid, orderStatus } = req.body;
-  console.log(orderid);
-  console.log(orderStatus);
+
   let user = await User.findOneAndUpdate(
     { "orders.orderid": orderid },
     {
@@ -575,7 +585,6 @@ app.post("/filterGradeList", async (req, resp) => {
         }
       });
       allGrades = [];
-      console.log(NewfinalLIst);
       allGrades.push(...NewfinalLIst);
       resp.status(200).json({ allGrades });
     }
@@ -654,15 +663,13 @@ app.post("/allgradelist", async (req, resp) => {
   let startdate = moment().format();
   let endDate = moment().format();
   let user;
-  console.log(endDate);
   if (datefilter) {
     user = await User.find({
       "orders.$.grades.$.gradeDate": startdate,
     }).select("orders");
-    console.log(datefilter);
+    // console.log(datefilter);
   } else {
     user = await User.find().select("orders");
-    console.log(datefilter);
   }
 
   if (!user) {
@@ -670,7 +677,6 @@ app.post("/allgradelist", async (req, resp) => {
       .status(401)
       .json({ error: "User with that email doesn't exists" });
   }
-
   let allGrades = [];
   let orderstatus = [];
   user.forEach((Nuser) => {
@@ -782,9 +788,6 @@ app.post("/addnotes", async (req, resp) => {
 
 app.delete("/deleteGrade", async (req, resp) => {
   const { userid, orderid, _id } = req.body;
-  console.log(_id);
-  console.log(userid);
-  console.log(orderid);
 
   const user = await User.findOne({ userid: userid });
   if (!user) {
@@ -924,9 +927,7 @@ app.post("/getorderlist", async (req, resp) => {
     userid: req.body.userid,
   }).select("-cards");
 
-  console.log(user);
   const orders = user.orders;
-  console.log(orders);
   // if (orders.length === 0) {
   //   return resp.status(200).json({ isEmpty: true });
   // } else {
@@ -945,7 +946,7 @@ app.get("/getadminorderlist", async (req, resp) => {
 
 app.post("/getadminfilterorderlist", async (req, resp) => {
   const status = req.body.orderStatus;
-  console.log(status);
+
   let user = await User.find({
     "orders.orderStatus": status,
   }).exec();
@@ -999,7 +1000,7 @@ app.post("/getOrderAndCardDetails/:uid", async (req, resp) => {
 
 app.post("/orders/:id", async (req, res) => {
   const userid = req.params.id;
-  console.log(userid);
+
   const user = await User.findOne({ userid });
   if (!user) {
     return res
@@ -1008,7 +1009,7 @@ app.post("/orders/:id", async (req, res) => {
   }
 
   const orders = user.orders;
-  console.log(orders);
+
   if (orders.length === 0) {
     return res.status(200).json({ isEmpty: true });
   }
@@ -1367,6 +1368,2421 @@ app.post("/upload", (req, res) => {
   res.status(200).json({ message: "ok" });
 });
 
+app.post("/upload-grades", async (req, res) => {
+  //Grades
+  const csv = require("fast-csv");
+  const fs = require("fs");
+  const path = require("path");
+  const filename = Date.now() + "_" + req.files.file.name;
+  const file = req.files.file;
+  let allGrades = [];
+  let uploadPath = __dirname + "/uploads/" + filename;
+  file.mv(uploadPath, (err) => {
+    if (err) {
+      return res.send(err);
+    }
+  });
+  try {
+    fs.createReadStream(uploadPath)
+      .pipe(
+        csv.parse({
+          headers: [
+            "ordernumber",
+            "psasub",
+            "cert",
+            "grade",
+            "description",
+            "card",
+          ],
+          ignoreHeaders: true,
+        })
+      )
+      .on("error", (err) => console.log(err))
+      .on("data", (row) => {
+        allGrades.push({ ...row });
+      })
+      .on("end", async (rowCount) => {
+        for (var i = 1; i <= rowCount; i++) {
+          let r1 = new Grades(allGrades[i]);
+          let result = await r1.save();
+        }
+      });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: err });
+  }
+  res.status(200).json({ message: "ok" });
+});
+//order status with grades fields
+app.post("/get-uploaded-grades", async (req, res) => {
+  try {
+    const autocompleteData = await User.aggregate([
+      {
+        $lookup: {
+          from: "grades",
+          localField: "orders.orderid",
+          foreignField: "ordernumber",
+          as: "result",
+        },
+      },
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $unwind: {
+          path: "$result",
+        },
+      },
+      {
+        $project: {
+          _id: "$result._id",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          orderid: "$orders.orderid",
+          servicelevel: "$orders.servicelevel",
+          status: "$result.status",
+          email: 1,
+          sgcphoto: "$orders.SGCphotoid",
+          psasub: "$result.psasub",
+          userid: 1,
+          grname: "$orders.grcompanyname",
+          qty: "$orders.cardcount",
+          ordertotal: {
+            $add: [
+              {
+                $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+              },
+              "$orders.insuranceammount",
+            ],
+          },
+        },
+      },
+    ]);
+    return res.status(200).json(autocompleteData);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-uploaded-grades-for-mail", async (req, res) => {
+  try {
+    const autocompleteData = await User.aggregate([
+      {
+        $lookup: {
+          from: "grades",
+          localField: "orders.orderid",
+          foreignField: "ordernumber",
+          as: "result",
+        },
+      },
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $unwind: {
+          path: "$result",
+        },
+      },
+      {
+        $project: {
+          _id: "$result._id",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          orderid: "$orders.orderid",
+          status: "$result.status",
+          email: 1,
+          userid: 1,
+        },
+      },
+    ]);
+    const uniqueEmails = [
+      ...new Set(autocompleteData.map((item) => item.email)),
+    ];
+    // const uniqueEmails = ['umarakmal71@gmail.com','conser.in3@gmail.com']
+    //For mail
+    if (uniqueEmails) {
+      for (var i = 0; i < uniqueEmails.length; i++) {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: "gupta.shubhanshu007@gmail.com",
+            pass: "bjzvvlumhuimipwq",
+          },
+        });
+
+        let message = {
+          from: "gupta.shubhanshu007@gmail.com",
+          to: uniqueEmails[i],
+          subject: "Nashcard: YourGgardes Are Ready.",
+          text: "Hi, Your grades are now ready for Order No:  4849 ",
+        };
+
+        transporter.sendMail(message, function (error, info) {
+          if (error) {
+            res.status(500).json("Email sent: " + info.response);
+          } else {
+            console.log("Email sent: " + info.response);
+          }
+        });
+      }
+    }
+    //
+    return res.status(200).json(uniqueEmails);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/order-autocomplete", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const autocompleteData = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          orderid: "$orders.orderid",
+        },
+      },
+    ]);
+    return res.status(200).json(autocompleteData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/order-search", async (req, res) => {
+  try {
+    const cert = req.body.cert;
+    const orderid = req.body.orderid;
+    const PSASub = req.body.PSASub;
+    if (!cert && !orderid && !PSASub) {
+      const autocompleteData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $unwind: {
+            path: "$orders.grades",
+          },
+        },
+        {
+          $project: {
+            _id: "$orders.grades._id",
+            orderid: "$orders.grades.orderid",
+            cert: "$orders.grades.cert",
+            grade: "$orders.grades.grade",
+            description: "$orders.grades.description",
+            PSASub: "$orders.grades.PSAsub",
+            poppedDate: "$orders.grades.poppedDate",
+            PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
+            status: "$orders.orderStatus",
+            frontImage: "$orders.grades.frontImage",
+            backimage: "$orders.grades.backimage",
+          },
+        },
+      ]);
+      return res.status(200).json(autocompleteData);
+    } else if (!cert && !PSASub) {
+      const autocompleteData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $unwind: {
+            path: "$orders.grades",
+          },
+        },
+        {
+          $project: {
+            _id: "$orders.grades._id",
+            orderid: "$orders.grades.orderid",
+            cert: "$orders.grades.cert",
+            grade: "$orders.grades.grade",
+            description: "$orders.grades.description",
+            PSASub: "$orders.grades.PSAsub",
+            poppedDate: "$orders.grades.poppedDate",
+            PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
+            status: "$orders.orderStatus",
+            frontImage: "$orders.grades.frontImage",
+            backimage: "$orders.grades.backimage",
+          },
+        },
+        {
+          $match: {
+            orderid: orderid,
+          },
+        },
+      ]);
+      return res.status(200).json(autocompleteData);
+    } else if (!PSASub && !orderid) {
+      const autocompleteData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $unwind: {
+            path: "$orders.grades",
+          },
+        },
+        {
+          $project: {
+            _id: "$orders.grades._id",
+            orderid: "$orders.grades.orderid",
+            cert: "$orders.grades.cert",
+            grade: "$orders.grades.grade",
+            description: "$orders.grades.description",
+            PSASub: "$orders.grades.PSAsub",
+            poppedDate: "$orders.grades.poppedDate",
+            PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
+            status: "$orders.orderStatus",
+            frontImage: "$orders.grades.frontImage",
+            backimage: "$orders.grades.backimage",
+          },
+        },
+        {
+          $match: {
+            cert: cert,
+          },
+        },
+      ]);
+      return res.status(200).json(autocompleteData);
+    } else if (!cert && !orderid) {
+      const autocompleteData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $unwind: {
+            path: "$orders.grades",
+          },
+        },
+        {
+          $project: {
+            _id: "$orders.grades._id",
+            orderid: "$orders.grades.orderid",
+            cert: "$orders.grades.cert",
+            grade: "$orders.grades.grade",
+            description: "$orders.grades.description",
+            PSASub: "$orders.grades.PSAsub",
+            poppedDate: "$orders.grades.poppedDate",
+            PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
+            status: "$orders.orderStatus",
+            frontImage: "$orders.grades.frontImage",
+            backimage: "$orders.grades.backimage",
+          },
+        },
+        {
+          $match: {
+            PSASub: PSASub,
+          },
+        },
+      ]);
+      return res.status(200).json(autocompleteData);
+    } else if (cert && PSASub) {
+      const autocompleteData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $unwind: {
+            path: "$orders.grades",
+          },
+        },
+        {
+          $project: {
+            _id: "$orders.grades._id",
+            orderid: "$orders.grades.orderid",
+            cert: "$orders.grades.cert",
+            grade: "$orders.grades.grade",
+            description: "$orders.grades.description",
+            PSASub: "$orders.grades.PSAsub",
+            poppedDate: "$orders.grades.poppedDate",
+            PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
+            status: "$orders.orderStatus",
+            frontImage: "$orders.grades.frontImage",
+            backimage: "$orders.grades.backimage",
+          },
+        },
+        {
+          $match: {
+            PSASub: parseInt(PSASub),
+            cert: cert,
+          },
+        },
+      ]);
+      return res.status(200).json(autocompleteData);
+    } else if (cert && orderid) {
+      const autocompleteData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $unwind: {
+            path: "$orders.grades",
+          },
+        },
+        {
+          $project: {
+            _id: "$orders.grades._id",
+            orderid: "$orders.grades.orderid",
+            cert: "$orders.grades.cert",
+            grade: "$orders.grades.grade",
+            description: "$orders.grades.description",
+            PSASub: "$orders.grades.PSAsub",
+            poppedDate: "$orders.grades.poppedDate",
+            PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
+            status: "$orders.orderStatus",
+            frontImage: "$orders.grades.frontImage",
+            backimage: "$orders.grades.backimage",
+          },
+        },
+        {
+          $match: {
+            orderid: orderid,
+            cert: cert,
+          },
+        },
+      ]);
+      return res.status(200).json(autocompleteData);
+    } else {
+      const autocompleteData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $unwind: {
+            path: "$orders.grades",
+          },
+        },
+        {
+          $project: {
+            _id: "$orders.grades._id",
+            orderid: "$orders.grades.orderid",
+            cert: "$orders.grades.cert",
+            grade: "$orders.grades.grade",
+            description: "$orders.grades.description",
+            PSASub: "$orders.grades.PSAsub",
+            poppedDate: "$orders.grades.poppedDate",
+            PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
+            status: "$orders.orderStatus",
+            frontImage: "$orders.grades.frontImage",
+            backimage: "$orders.grades.backimage",
+          },
+        },
+        {
+          $match: {
+            cert: cert,
+            orderid: orderid,
+            PSASub: PSASub,
+          },
+        },
+      ]);
+      return res.status(200).json(autocompleteData);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+//order status with grades fields
+app.post("/order-status", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const autocompleteData = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $match: {
+          "orders.orderStatus": { $ne: "Quality And Assurance" },
+        },
+      },
+      {
+        $unwind: {
+          path: "$orders.grades",
+        },
+      },
+      {
+        $project: {
+          orderStatus: "$orders.orderStatus",
+          orderid: "$orders.grades.orderid",
+          cert: "$orders.grades.cert",
+          grade: "$orders.grades.grade",
+          description: "$orders.grades.description",
+          PSASub: "$orders.grades.PSAsub",
+          poppedDate: "$orders.grades.poppedDate",
+          PSAUpchargeAmount: "$orders.grades.PSAUpchargeAmmount",
+          frontImage: "$orders.grades.frontImage",
+          backimmage: "$orders.grades.backimage",
+          _id: "$orders.grades._id",
+        },
+      },
+    ]);
+    return res.status(200).json(autocompleteData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/order-search-service-tracking", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const servicelevel = req.body.servicelevel;
+    if (servicelevel) {
+      const searchData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $match: {
+            "orders.servicelevel": servicelevel,
+          },
+        },
+        {
+          $project: {
+            name: {
+              $concat: ["$name", " ", "$lastname"],
+            },
+            orderid: "$orders.orderid",
+            serviceLevel: "$orders.servicelevel",
+            status: "$orders.orderStatus",
+            cardQty: "$orders.cardcount",
+            cardRecievedDate: "$orders.CardrecivedDate",
+            gradingcompany: "$orders.grcompanyname",
+            userid: 1,
+            orderTotal: {
+              $add: [
+                {
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                },
+                "$orders.insuranceammount",
+              ],
+            },
+          },
+        },
+      ]);
+      return res.status(200).json(searchData);
+    } else {
+      const searchData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $project: {
+            name: {
+              $concat: ["$name", " ", "$lastname"],
+            },
+            orderid: "$orders.orderid",
+            serviceLevel: "$orders.servicelevel",
+            status: "$orders.orderStatus",
+            cardQty: "$orders.cardcount",
+            cardRecievedDate: "$orders.CardrecivedDate",
+            gradingcompany: "$orders.grcompanyname",
+            userid: 1,
+            orderTotal: {
+              $add: [
+                {
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                },
+                "$orders.insuranceammount",
+              ],
+            },
+          },
+        },
+      ]);
+      return res.status(200).json(searchData);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/search-psa-orders", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const psasub = parseInt(req.body.psasub);
+    if (psasub) {
+      const searchData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $match: {
+            "orders.PSASub": parseInt(psasub),
+          },
+        },
+        {
+          $project: {
+            psasub: "$orders.PSASub",
+            orderid: "$orders.orderid",
+            serviceLevel: "$orders.servicelevel",
+            status: "$orders.orderStatus",
+            gradingcompany: "$orders.grcompanyname",
+            userid: 1,
+            orderTotal: {
+              $add: [
+                {
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                },
+                "$orders.insuranceammount",
+              ],
+            },
+          },
+        },
+      ]);
+      return res.status(200).json(searchData);
+    } else {
+      const searchData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $project: {
+            psasub: "$orders.PSASub",
+            orderid: "$orders.orderid",
+            serviceLevel: "$orders.servicelevel",
+            status: "$orders.orderStatus",
+            gradingcompany: "$orders.grcompanyname",
+            userid: 1,
+            orderTotal: {
+              $add: [
+                {
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                },
+                "$orders.insuranceammount",
+              ],
+            },
+          },
+        },
+      ]);
+      return res.status(200).json(searchData);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+//order status with grades fields
+app.post("/updated-order-status", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const searchData = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $match: {
+          "orders.orderStatus": "Quality And Assurance",
+        },
+      },
+      {
+        $project: {
+          userid: "$userid",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          _id: 1,
+          orderid: "$orders.orderid",
+          serviceLevel: "$orders.servicelevel",
+          status: "$orders.orderStatus",
+          cardQty: "$orders.cardcount",
+          psasub: "$orders.PSASub",
+          grcompanyname: "$orders.grcompanyname",
+          orderTotal: {
+            $add: [
+              {
+                $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+              },
+              "$orders.insuranceammount",
+            ],
+          },
+        },
+      },
+    ]);
+    return res.status(200).json(searchData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+//order status with grades fields
+app.post("/card-tracking-search", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const searchData = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $unwind: {
+          path: "$cards",
+        },
+      },
+      {
+        $project: {
+          _id: "$cards._id",
+          orderid: "$cards.orderid",
+          serviceLevel: "$orders.servicelevel",
+          status: "$orders.orderStatus",
+          cardQty: "$cards.qty",
+          psasub: "$orders.PSASub",
+          dv: "$cards.totalDV",
+          dateCreated: "$orders.createdate",
+          ordername: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+        },
+      },
+    ]);
+    return res.status(200).json(searchData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/card-search", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const { orderid, psasub } = req.body;
+    if (orderid) {
+      const searchData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $match: {
+            "orders.orderid": orderid,
+          },
+        },
+        {
+          $unwind: {
+            path: "$cards",
+          },
+        },
+        {
+          $project: {
+            _id: "$cards._id",
+            orderid: "$cards.orderid",
+            serviceLevel: "$orders.servicelevel",
+            cardQty: "$cards.qty",
+            psasub: "$orders.PSASub",
+            dv: "$cards.totalDV",
+            ordername: "$cards.playername",
+            cardyear: "$cards.cardyear",
+            brand: "$cards.brand",
+            cardnumber: "$cards.cardnumber",
+            playername: "$cards.playername",
+            attribute: "$cards.attribute",
+            price: "$orders.pricepercard",
+            gradingcompany: "$orders.grcompanyname",
+            userid: 1,
+            orderTotal: {
+              $add: [
+                {
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                },
+                "$orders.insuranceammount",
+              ],
+            },
+          },
+        },
+      ]);
+      return res.status(200).json(searchData);
+    } else if (psasub) {
+      const searchData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $match: {
+            "orders.PSASub": parseInt(psasub),
+          },
+        },
+        {
+          $unwind: {
+            path: "$cards",
+          },
+        },
+        {
+          $project: {
+            _id: "$cards._id",
+            orderid: "$cards.orderid",
+            serviceLevel: "$orders.servicelevel",
+            cardQty: "$cards.qty",
+            psasub: "$orders.PSASub",
+            dv: "$cards.totalDV",
+            ordername: "$cards.playername",
+            cardyear: "$cards.cardyear",
+            brand: "$cards.brand",
+            cardnumber: "$cards.cardnumber",
+            playername: "$cards.playername",
+            attribute: "$cards.attribute",
+            price: "$orders.pricepercard",
+            gradingcompany: "$orders.grcompanyname",
+            userid: 1,
+            orderTotal: {
+              $add: [
+                {
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                },
+                "$orders.insuranceammount",
+              ],
+            },
+          },
+        },
+      ]);
+      return res.status(200).json(searchData);
+    } else if (psasub && orderid) {
+      const searchData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $match: {
+            "orders.PSASub": parseInt(psasub),
+            "orders.orderid": orderid,
+          },
+        },
+        {
+          $unwind: {
+            path: "$cards",
+          },
+        },
+        {
+          $project: {
+            _id: "$cards._id",
+            orderid: "$cards.orderid",
+            serviceLevel: "$orders.servicelevel",
+            cardQty: "$cards.qty",
+            psasub: "$orders.PSASub",
+            dv: "$cards.totalDV",
+            ordername: "$cards.playername",
+            cardyear: "$cards.cardyear",
+            brand: "$cards.brand",
+            cardnumber: "$cards.cardnumber",
+            playername: "$cards.playername",
+            attribute: "$cards.attribute",
+            price: "$orders.pricepercard",
+            gradingcompany: "$orders.grcompanyname",
+            userid: 1,
+            orderTotal: {
+              $add: [
+                {
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                },
+                "$orders.insuranceammount",
+              ],
+            },
+          },
+        },
+      ]);
+      return res.status(200).json(searchData);
+    } else {
+      const searchData = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $unwind: {
+            path: "$cards",
+          },
+        },
+        {
+          $project: {
+            _id: "$cards._id",
+            orderid: "$cards.orderid",
+            serviceLevel: "$orders.servicelevel",
+            status: "$orders.orderStatus",
+            cardQty: "$cards.qty",
+            psasub: "$orders.PSASub",
+            dv: "$cards.totalDV",
+            dateCreated: "$orders.createdate",
+            ordername: "$cards.playername",
+            cardyear: "$cards.cardyear",
+            brand: "$cards.brand",
+            cardnumber: "$cards.cardnumber",
+            playername: "$cards.playername",
+            attribute: "$cards.attribute",
+            price: "$orders.pricepercard",
+            gradingcompany: "$orders.grcompanyname",
+            userid: 1,
+            orderTotal: {
+              $add: [
+                {
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                },
+                "$orders.insuranceammount",
+              ],
+            },
+          },
+        },
+      ]);
+      return res.status(200).json(searchData);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/service-level-tracking-order-autocomplete", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const autocompleteData = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          orderid: "$orders.servicelevel",
+        },
+      },
+    ]);
+    return res.status(200).json(autocompleteData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-data-service-tracking", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const searchData = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          orderid: "$orders.orderid",
+          serviceLevel: "$orders.servicelevel",
+          status: "$orders.orderStatus",
+          totalcardQty: "$orders.cardcount",
+          cardRecievedDate: "$orders.CardrecivedDate",
+          gradingcompany: "$orders.grcompanyname",
+          userid: 1,
+          orderTotal: {
+            $add: [
+              {
+                $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+              },
+              "$orders.insuranceammount",
+            ],
+          },
+        },
+      },
+    ]);
+    return res.status(200).json(searchData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-data-customers", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const searchCustomers = await User.aggregate([
+      {
+        $project: {
+          _id: 1,
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          email: 1,
+          userid: 1,
+        },
+      },
+    ]);
+    return res.status(200).json(searchCustomers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/search-customers-address", async (req, res) => {
+  try {
+    const addressSearch = req.body.addressSearch;
+    // Fetch data from the database based on the input
+    const searchCustomers = await User.aggregate([
+      {
+        $match: {
+          $or: [
+            {
+              address: {
+                $regex: addressSearch,
+                $options: "i",
+              },
+            },
+            {
+              city: {
+                $regex: addressSearch,
+                $options: "i",
+              },
+            },
+            {
+              $expr: {
+                $regexMatch: {
+                  input: {
+                    $toString: "$pincode",
+                  },
+                  regex: addressSearch,
+                },
+              },
+            },
+            {
+              state: {
+                $regex: addressSearch,
+                $options: "i",
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          pincode: {
+            $toString: "$pincode",
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          email: 1,
+          address: {
+            $concat: ["$address", ",", "$city", ",", "$state", ",", "$pincode"],
+          },
+          contact: 1,
+        },
+      },
+    ]);
+    return res.status(200).json(searchCustomers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/psasub-autocomplete", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const autocompleteData = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $addFields: {
+          psasub: { $toString: "$orders.PSASub" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          orderid: "$psasub",
+        },
+      },
+    ]);
+    return res.status(200).json(autocompleteData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/customer-user-details", async (req, res) => {
+  try {
+    const id = req.body.id;
+    // Fetch data from the database based on the input
+    const autocompleteData = await User.aggregate([
+      {
+        $match: {
+          _id: id,
+        },
+      },
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          orderid: "$psasub",
+        },
+      },
+    ]);
+    return res.status(200).json(autocompleteData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.post("/user-details-data-with-id", async (req, res) => {
+  try {
+    const userid = req.body.userid;
+    // Fetch data from the database based on the input
+    const userdetails = await User.aggregate([
+      {
+        $match: {
+          userid: parseInt(userid),
+        },
+      },
+      {
+        $addFields: {
+          pincode: {
+            $toString: "$pincode",
+          },
+        },
+      },
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          email: 1,
+          contact: 1,
+          address: {
+            $concat: ["$address", ",", "$city", ",", "$state", ",", "$pincode"],
+          },
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.post("/customers-unpaid-order", async (req, res) => {
+  try {
+    const userid = req.body.userid;
+    // Fetch data from the database based on the input
+    const userdetails = await User.aggregate([
+      {
+        $match: {
+          userid: parseInt(userid),
+        },
+      },
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          ordersTotal: "$orders.isorderpaid",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          ordersTotal: {
+            $sum: 1,
+          },
+          unpaidOrders: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: ["$ordersTotal", false],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.post("/customers-orders", async (req, res) => {
+  try {
+    const userid = req.body.userid;
+    // Fetch data from the database based on the input
+    const userdetails = await User.aggregate([
+      {
+        $match: {
+          userid: parseInt(userid),
+        },
+      },
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          orderid: "$orders.orderid",
+          servicelevel: "$orders.servicelevel",
+          status: "$orders.orderStatus",
+          totalcards: "$orders.cardcount",
+          orderTotal: {
+            $add: [
+              {
+                $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+              },
+              "$orders.insuranceammount",
+            ],
+          },
+          paiddate: "$orders.paiddate",
+          gradespoppedDate: "$orders.Gardespopdate",
+          grcompanyname: "$orders.grcompanyname",
+          userid: 1,
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.post("/orders-details-perid", async (req, res) => {
+  try {
+    const userid = req.body.userid;
+    const orderid = req.body.orderid;
+
+    // Fetch data from the database based on the input
+    const userdetails = await User.aggregate([
+      {
+        $match: {
+          userid: parseInt(userid),
+        }, // 'orders._id':idperorder
+      },
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $match: {
+          "orders.orderid": orderid,
+        }, // 'orders._id':idperorder
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          email: 1,
+          orderid: "$orders.orderid",
+          servicelevel: "$orders.servicelevel",
+          status: "$orders.orderStatus",
+          totalcards: "$orders.cardcount",
+          insuranceammount: "$orders.insuranceammount",
+          orderTotal: {
+            $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+          },
+          localpickup: "$orders.localpickup",
+          PSAUpcharge: "$orders.PSAUpcharge",
+          pricepercard: "$orders.pricepercard",
+          paiddate: "$orders.paiddate",
+          NonLoggedCardCount: "$orders.NonLoggedCardCount",
+          Percardpriceofnonloggedcard: "$orders.Percardpriceofnonloggedcard",
+          NumberOfKicksfromservicelevel:
+            "$orders.NumberOfKicksfromservicelevel",
+          Kicksfromreview: "$orders.Kicksfromreview",
+          NumberofReviewPasses: "$orders.NumberofReviewPasses",
+          PassesPrice: "$orders.PassesPrice",
+          gradespoppedDate: "$orders.Gardespopdate",
+          grcompanyname: "$orders.grcompanyname",
+          userid: 1,
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.post("/get-grades", async (req, res) => {
+  try {
+    const userid = req.body.userid;
+
+    // Fetch data from the database based on the input
+    const userdetails = await User.aggregate([
+      {
+        $match: {
+          userid: parseInt(userid),
+        },
+      },
+      {
+        $lookup: {
+          from: "grades",
+          localField: "orders.orderid",
+          foreignField: "ordernumber",
+          as: "result",
+        },
+      },
+      {
+        $unwind: {
+          path: "$result",
+        },
+      },
+      {
+        $project: {
+          _id: "$result._id",
+          orderid: "$result.ordernumber",
+          cert: "$result.cert",
+          grade: "$result.grade",
+          desc: "$result.Description",
+          psaupcharge: "$result.psaupcharge",
+          frontimage: "$result.frontimage",
+          backimage: "$result.backimage",
+          psasub: "$result.psasub",
+          userid: 1,
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-shipping", async (req, res) => {
+  try {
+    const psasub = req.body.psasub;
+    if (psasub) {
+      // Fetch data from the database based on the input
+      const userdetails = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $match: {
+            "orders.PSASub": parseInt(psasub),
+          },
+        },
+
+        {
+          $project: {
+            _id: "$orders._id",
+            totalcard: { $size: "$cards" },
+            orderid: "$orders.orderid",
+            psasub: "$orders.PSASub",
+            userid: 1,
+            grname: "$orders.grcompanyname",
+          },
+        },
+      ]);
+      return res.status(200).json(userdetails);
+    } else {
+      const userdetails = await User.aggregate([
+        {
+          $unwind: {
+            path: "$orders",
+          },
+        },
+        {
+          $project: {
+            _id: "$orders._id",
+            totalcard: { $size: "$cards" },
+            orderid: "$orders.orderid",
+            psasub: "$orders.PSASub",
+            userid: 1,
+            grname: "$orders.grcompanyname",
+          },
+        },
+      ]);
+      return res.status(200).json(userdetails);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.post("/review-orders", async (req, res) => {
+  try {
+    const userid = req.body.userid;
+    // Fetch data from the database based on the input
+    const userdetails = await ureviews.aggregate([
+      {
+        $match: {
+          userid: parseInt(userid),
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          reviewid: 1,
+          status: 1,
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-grades-for-edit", async (req, res) => {
+  try {
+    const orderid = req.body.orderid;
+    // Fetch data from the database based on the input
+    const userdetails = await Grades.aggregate([
+      {
+        $match: {
+          ordernumber: orderid,
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.post("/order-notes", async (req, res) => {
+  try {
+    // Fetch data from the database based on the input
+    const userdetails = await User.aggregate([
+      {
+        $lookup: {
+          from: "employelogins",
+          localField: "userid",
+          foreignField: "adminid",
+          as: "result",
+        },
+      },
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $unwind: {
+          path: "$result",
+        },
+      },
+      {
+        $project: {
+          orders: 1,
+          ordernotes: "$orders.ordernotes",
+          name: "$result.name",
+        },
+      },
+      {
+        $unwind: {
+          path: "$ordernotes",
+        },
+      },
+      {
+        $project: {
+          _id: "$ordernotes._id",
+          name: "$name",
+          ordernumber: "$orders.orderid",
+          noteDate: "$ordernotes.notedate",
+          ordernotes: "$ordernotes.notes",
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-customer-updatedata", async (req, res) => {
+  try {
+    const userid = req.body.userid;
+    const userdetails = await User.aggregate([
+      {
+        $match: {
+          userid: parseInt(userid),
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          lastname: 1,
+          address: 1,
+          city: 1,
+          pincode: 1,
+          state: 1,
+          email: 1,
+          contact: 1,
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.post("/get-card-log", async (req, res) => {
+  try {
+    const cardLogs = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          orderid: "$orders.orderid",
+          status: "$orders.orderStatus",
+          servicelevel: "$orders.servicelevel",
+          orderCreationDate: "$orders.createdate",
+          userid: 1,
+        },
+      },
+      { $sort: { orderCreationDate: 1 } },
+    ]);
+    return res.status(200).json(cardLogs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.post("/create-project", async (req, res) => {
+  try {
+    let projectDet = new project(req.body);
+    let result = await projectDet.save();
+    result = result.toObject();
+    res.send(result);
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+});
+
+app.post("/get-details-project", async (req, res) => {
+  try {
+    let result = await project.find();
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+});
+
+app.delete("/delete-project", async (req, res) => {
+  try {
+    const id = req.body.id;
+    await project.findByIdAndRemove(id).then((data) => {
+      if (!data) {
+        res.status(404).send({
+          message: `Cannot delete`,
+        });
+      } else {
+        res.send({
+          message: "project was deleted successfully!",
+        });
+      }
+    });
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+});
+
+app.post("/get-project-with-id", async (req, res) => {
+  try {
+    const id = req.body.id;
+    let result = await project.findById(id);
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+});
+
+app.patch("/updateproject", async (req, resp) => {
+  const id = req.body.id;
+  const projectTitle = req.body.projectTitle;
+  const description = req.body.description;
+  const status = req.body.status;
+  const dueDate = req.body.dueDate;
+  const assignedMember = req.body.assignedMember;
+  let projectDet = await project.findOneAndUpdate(
+    { _id: id },
+    {
+      $set: {
+        projectTitle: projectTitle,
+        description: description,
+        status: status,
+        dueDate: dueDate,
+        assignedMember: assignedMember,
+      },
+    },
+    { new: true }
+  );
+  resp.status(200).json({ proj: "Successfully Updated" });
+});
+
+app.patch("/update-grades", async (req, resp) => {
+  const orderNo = req.body.orderNo;
+  const cert = req.body.cert;
+  const description = req.body.description;
+  const grade = req.body.grade;
+  const pSASub = req.body.pSASub;
+  const datePooped = req.body.datePooped;
+  const pSASubAmt = req.body.pSASubAmt;
+
+  let projectDet = await Grades.findOneAndUpdate(
+    { ordernumber: orderNo },
+    {
+      $set: {
+        cert: cert,
+        ordernumber: orderNo,
+        Description: description,
+        grade: grade,
+        psasub: pSASub,
+        datepopped: datePooped,
+        psaupcharge: pSASubAmt,
+      },
+    },
+    { new: true }
+  );
+  resp.status(200).json({ proj: "Successfully Updated" });
+});
+app.post("/find-member", async (req, res) => {
+  try {
+    let result = await empLogin.find();
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+});
+
+app.post("/get-order-await", async (req, res) => {
+  try {
+    const userdetails = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $match: {
+          "orders.orderStatus": "Awaiting Customer Pickup", //Awaiting Customer Pickup
+        },
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          orderid: "$orders.orderid",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          paystatus: "paid/unpaid",
+          servicelevel: "$orders.servicelevel",
+          userid: 1,
+          totalcards: "$orders.cardcount",
+          status: "$orders.orderStatus",
+          grname: "$orders.grcompanyname",
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-order-pickup", async (req, res) => {
+  try {
+    const userdetails = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $match: {
+          "orders.orderStatus": "Picked Up", //Picked Up
+        },
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          orderid: "$orders.orderid",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          servicelevel: "$orders.servicelevel",
+          userid: 1,
+          totalcards: "$orders.cardcount",
+          status: "$orders.orderStatus",
+          grname: "$orders.grcompanyname",
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-order-request-return", async (req, res) => {
+  try {
+    const userdetails = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $match: {
+          "orders.orderStatus": "Requested Returns", //Requested Returns
+        },
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          orderid: "$orders.orderid",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          servicelevel: "$orders.servicelevel",
+          userid: 1,
+          totalcards: "$orders.cardcount",
+          status: "$orders.orderStatus",
+          email: 1,
+          grname: "$orders.grcompanyname",
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-order-newly-paid", async (req, res) => {
+  try {
+    const userdetails = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        //Newly Paid
+        $match: {
+          "orders.orderStatus": "Newly Paid",
+        },
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          orderid: "$orders.orderid",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          servicelevel: "$orders.servicelevel",
+          userid: 1,
+          totalcards: "$orders.cardcount",
+          status: "$orders.orderStatus",
+          poppedDate: "$orders.Gardespopdate",
+          paiddate: "$orders.paiddate",
+          grname: "$orders.grcompanyname",
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.patch("/markaspickedup", async (req, resp) => {
+  const { orderid } = req.body;
+  let user = await User.findOneAndUpdate(
+    { "orders.orderid": orderid },
+    {
+      $set: {
+        "orders.$.orderStatus": "Picked Up",
+      },
+    },
+    { new: true }
+  );
+  resp.send({ user: "Order Has been updated" });
+});
+app.post("/get-sgc-photos", async (req, res) => {
+  try {
+    const userdetails = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          orderid: "$orders.orderid",
+          servicelevel: "$orders.servicelevel",
+          userid: 1,
+          psasub: "$orders.PSASub",
+          SGCphotoid: "$orders.SGCphotoid",
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-paid-orders", async (req, res) => {
+  try {
+    const userdetails = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $match: {
+          "orders.orderStatus": "Paid",
+        },
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          orderid: "$orders.orderid",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          servicelevel: "$orders.servicelevel",
+          userid: 1,
+          status: "$orders.orderStatus",
+          poppedDate: "$orders.Gardespopdate",
+          paiddate: "$orders.paiddate",
+          grname: "$orders.grcompanyname",
+          email: 1,
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-review", async (req, res) => {
+  try {
+    const status = req.body.status;
+    if (!status) {
+      const userdetails = await ureviews.aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "userid",
+            foreignField: "userid",
+            as: "result",
+          },
+        },
+        {
+          $unwind: {
+            path: "$result",
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            email: "$result.email",
+            userid: "$result.userid",
+            name: {
+              $concat: ["$result.name", " ", "$result.lastname"],
+            },
+            reviewid: 1,
+            companyname: 1,
+            status: 1,
+          },
+        },
+      ]);
+      return res.status(200).json(userdetails);
+    } else {
+      const userdetails = await ureviews.aggregate([
+        {
+          $match: {
+            status: status,
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userid",
+            foreignField: "userid",
+            as: "result",
+          },
+        },
+        {
+          $unwind: {
+            path: "$result",
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            email: "$result.email",
+            userid: "$result.userid",
+            name: {
+              $concat: ["$result.name", " ", "$result.lastname"],
+            },
+            reviewid: 1,
+            companyname: 1,
+            status: 1,
+          },
+        },
+      ]);
+      return res.status(200).json(userdetails);
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.patch("/mark-as-shipped", async (req, resp) => {
+  const { orderid } = req.body;
+  let user = await User.findOneAndUpdate(
+    { "orders.orderid": orderid },
+    {
+      $set: {
+        "orders.$.orderStatus": "Shipped",
+      },
+    },
+    { new: true }
+  );
+  resp.send({ user: "Order Has been updated" });
+});
+
+app.delete("/delete-review", async (req, res) => {
+  try {
+    const id = req.body.id;
+    await ureviews.findByIdAndRemove(id).then((data) => {
+      if (!data) {
+        res.status(404).send({
+          message: `Cannot delete`,
+        });
+      } else {
+        res.send({
+          message: "review was deleted successfully!",
+        });
+      }
+    });
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+});
+
+app.post("/create-subnum", async (req, res) => {
+  try {
+    let psaNumDet = new psasubtracker(req.body);
+    let result = await psaNumDet.save();
+    result = result.toObject();
+    res.send(result);
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+});
+app.post("/create-review", async (req, res) => {
+  try {
+    let reviewData = new reviews(req.body);
+    let result = await reviewData.save();
+    result = result.toObject();
+    res.send(result);
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+});
+
+app.post("/get-details-psasubtracker", async (req, res) => {
+  try {
+    let result = await psasubtracker.find();
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+});
+
+app.patch("/updatePsa-subtracker", async (req, resp) => {
+  try {
+    const psasubnum = req.body.subnumber;
+    const headers = {
+      Authorization:
+        "Bearer efIjuZZweQdXDXL149ELi1S-npq7N4kyxTko1XaJB8SCPzKKUzyBCq3nvGc2c0KynQ_fAFG0MxnyiNc_kMc_sBBytzvCNyppnx4T2mdF8EXD_pNPKSXmYEiYmOT0S2a7hiI3-jRlfsLAWIcI_AU2LKFKQe373Ez5p0rgCEkBBgFts_8MK_L4HsMzaL-OVwleJkveLOhH6RFveOBrR_gE6saJ2KxBE3ImqsSZovOBAOrgT1pZhQxYFHFkjdg5gVo4E5xAalUd_hQhZelrc-2A-2_5eQNF265cAT-KpWCig-rty_UJ",
+    };
+    const response = await axios.get(
+      `https://api.psacard.com/publicapi/order/GetSubmissionProgress/${psasubnum}`,
+      { headers }
+    );
+
+    if ((await response.status) === 200) {
+      const ordernumber = await response.data.orderNumber;
+      const shipped = await response.data.shipped;
+      const arrived = await response.data.orderProgressSteps[0].completed;
+      const orderprep = await response.data.orderProgressSteps[1].completed;
+      const researchandid = await response.data.orderProgressSteps[2].completed;
+      const grading = await response.data.orderProgressSteps[3].completed;
+      const gradespopped = await response.data.gradesReady;
+      const assembly = await response.data.orderProgressSteps[4].completed;
+      const qacheck1 = await response.data.orderProgressSteps[5].completed;
+      const qacheck2 = await response.data.orderProgressSteps[6].completed;
+      const trackingnumber = await response.data.shipTrackingNumber;
+
+      let valPsaStatus = [];
+      await response.data.orderProgressSteps.forEach((el) => {
+        if (el.completed === false) {
+          valPsaStatus.push(el.step);
+        } else {
+        }
+      });
+      let psacurrentstatus;
+      if (valPsaStatus.length > 0) {
+        psacurrentstatus = valPsaStatus[0];
+      } else {
+        psacurrentstatus = "Completed";
+      }
+
+      let user = await psasubtracker.findOneAndUpdate(
+        { subnumber: parseInt(psasubnum) },
+        {
+          $set: {
+            ordernumber: parseInt(ordernumber),
+            shipped: shipped,
+            assembly: assembly,
+            qacheck1: qacheck1,
+            qacheck2: qacheck2,
+            trackingnumber: trackingnumber,
+            arrived: arrived,
+            orderprep: orderprep,
+            researchandid: researchandid,
+            gradespopped: gradespopped,
+            grading: grading,
+            psacurrentstatus: psacurrentstatus,
+          },
+        },
+        { new: true }
+      );
+      resp.send({ data: "Information has been updated" });
+    } else {
+    }
+  } catch (error) {
+    return resp.status(500).json("error");
+  }
+});
+
+app.post("/get-service-level", async (req, res) => {
+  try {
+    const servicedetails = await servicelevel.aggregate([
+      {
+        $project: {
+          _id: 1,
+          pricepercard: 1,
+          servicelevel: 1,
+        },
+      },
+    ]);
+    return res.status(200).json(servicedetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.post("/get-status-order", async (req, res) => {
+  try {
+    const orderdetails = await orderStatus.find({});
+    return res.status(200).json(orderdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-status-subtracker", async (req, res) => {
+  try {
+    const status = req.body.status;
+
+    if (status) {
+      if (status === "Hide Completed") {
+        const userdetails = await psasubtracker.aggregate([
+          {
+            $match: {
+              psacurrentstatus: { $ne: "Completed" },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              subnumber: 1,
+              creationdate: 1,
+              psacurrentstatus: 1,
+              gradespopped: 1,
+              updatedAt: 1,
+            },
+          },
+        ]);
+        return res.status(200).json(userdetails);
+      } else {
+        const userdetails = await psasubtracker.aggregate([
+          {
+            $match: {
+              psacurrentstatus: status,
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              subnumber: 1,
+              creationdate: 1,
+              psacurrentstatus: 1,
+              gradespopped: 1,
+              updatedAt: 1,
+            },
+          },
+        ]);
+        return res.status(200).json(userdetails);
+      }
+    } else {
+      const userdetails = await psasubtracker.aggregate([
+        {
+          $project: {
+            _id: 1,
+            subnumber: 1,
+            creationdate: 1,
+            psacurrentstatus: 1,
+            gradespopped: 1,
+            updatedAt: 1,
+          },
+        },
+      ]);
+      return res.status(200).json(userdetails);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-psa-orders-for-subtracker", async (req, res) => {
+  try {
+    const userdetails = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $match: {
+          "orders.orderStatus": "Cards Sent to Grading Company",
+        },
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          orderid: "$orders.orderid",
+          psasubnumber: "$orders.PSASub",
+          servicelevel: "$orders.servicelevel",
+          userid: 1,
+          cardssenttopsadate: "",
+          cardrecievedbypsadate: "$orders.CardrecivedDate",
+          status: "$orders.orderStatus",
+          grname: "$orders.grcompanyname",
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.post("/get-orders-recieved", async (req, res) => {
+  try {
+    const userdetails = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          ordernumber: "$orders.orderid",
+          psasubnumber: "$orders.PSASub",
+          servicelevel: "$orders.servicelevel",
+          userid: 1,
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          cardssenttopsadate: "",
+          cardrecieveddate: "$orders.CardrecivedDate",
+          status: "$orders.orderStatus",
+          grname: "$orders.grcompanyname",
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/get-orders-shipping", async (req, res) => {
+  try {
+    const psasub = req.body.psasub;
+    const userdetails = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $match: {
+          "orders.PSASub": parseInt(psasub),
+        },
+      },
+      {
+        $project: {
+          grade: "$orders.grades",
+          orderid: "$orders.orderid",
+          psasub: "$orders.PSASub",
+          name: {
+            $concat: ["$name", " ", "$lastname"],
+          },
+          status: "$orders.orderStatus",
+          shippickup: "$orders.localpickup",
+          location: {
+            $concat: ["$city", ",", "$state"],
+          },
+        },
+      },
+      {
+        $unwind: {
+          path: "$grade",
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/create-order", async (req, resp) => {
+  const validuser = await User.findOne({ userid: req.body.userid });
+  if (!validuser) {
+    return resp
+      .status(401)
+      .json({ error: "user with that user id is not exist" });
+  } else {
+    const neworder = {
+      orderid: req.body.orderid,
+      orderType: req.body.orderType,
+      servicelevel: req.body.servicelevel,
+      grcompanyname: req.body.grcompanyname,
+      cardcount: req.body.cardcount,
+      localpickup: req.body.localpickup,
+      totaldv: req.body.totaldv,
+      insuranceammount: req.body.insuranceammount,
+      pricepercard: req.body.pricepercard,
+      calculatedtotalcard: req.body.calculatedtotalcard,
+      isactive: true,
+      caculatedinsurancecost: req.body.caculatedinsurancecost,
+      TotalPrice: 0,
+      ShippingFee: req.body.ShippingFee,
+      textmessagealert: req.body.textmessagealert,
+      userid: req.body.userid,
+      isordercomplete: req.body.isordercomplete,
+      orderStatus: req.body.orderStatus,
+      SGCphotoid: req.body.SGCphotoid,
+      NonLoggedCardCount: req.body.NonLoggedCardCount,
+      LoggedCardCount: req.body.LoggedCardCount,
+      cardsaverqty: req.body.cardsaverqty,
+      cardsaverprice: req.body.cardsaverprice,
+      PSASub: req.body.PSASub,
+      PSAUpcharge: req.body.PSAUpcharge,
+      CustomerCSV: req.body.CustomerCSV,
+      DropoffLocation: req.body.DropoffLocation,
+      paymentlink: req.body.paymentlink,
+      autographcount: req.body.autographcount,
+      isorderpaid: req.body.isorderpaid,
+      NumberOfKicksfromservicelevel: 0,
+      Kicksfromreview: 0,
+      NumberofReviewPasses: 0,
+      PassesPrice: 0,
+      Percardpriceofnonloggedcard: 0,
+      Gardespopdate: req.body.Gardespopdate,
+      CardrecivedDate: req.body.CardrecivedDate,
+      CardrecivedDate: req.body.CardrecivedDate,
+      CustomerInvoicedDate: req.body.CustomerInvoicedDate,
+      Orderconfirmed: false,
+      ordernotes: [],
+      grades: [],
+    };
+
+    validuser.orders.push(neworder);
+    validuser.save();
+    resp.status(200).json(validuser);
+  }
+});
+
+// Function to validate 'id'
+function isValidId(id) {
+  // Check if 'id' is a string of 12 bytes or 24 hex characters or an integer
+  return (
+    typeof id === "string" &&
+    (id.length === 12 || id.length === 24) &&
+    /^[0-9a-fA-F]+$/.test(id)
+  );
+}
+// card with service level
+app.post("/carddetails", async (req, res) => {
+  try {
+    const id = req.body.id;
+    // Validate 'id' before creating the ObjectId
+    if (!isValidId(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const userdetails = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders",
+        },
+      },
+      {
+        $unwind: {
+          path: "$cards",
+        },
+      },
+      {
+        $match: {
+          "cards._id": new ObjectId(id),
+        },
+      },
+      {
+        $match: {
+          $expr: {
+            $eq: ["$orders.orderid", "$cards.orderid"],
+          },
+        },
+      },
+      {
+        $project: {
+          _id: "$cards._id",
+          servcelevel: "$orders.servicelevel",
+          userid: 1,
+          orderid: "$cards.orderid",
+          attribute: "$cards.attribute",
+          brand: "$cards.brand",
+          cardnumber: "$cards.cardnumber",
+          cardyear: "$cards.cardyear",
+          playername: "$cards.playername",
+          cardqty: "$cards.qty",
+          totaldv: "$cards.totalDV",
+          qty: "$cards.qty",
+          pricepercard: "$orders.pricepercard",
+          PSASub: "$orders.PSASub",
+        },
+      },
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 app.listen(5000);
 
 //5001 Server confirgure for nashcard application

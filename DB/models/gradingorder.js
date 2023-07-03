@@ -43,7 +43,7 @@ const orderschema = new mongoose.Schema({
   CardsenttoPSADate: Date,
   CustomerInvoicedDate: Date,
   Orderconfirmed: Boolean,
-
+paiddate:Date,
   ordernotes: [
     {
       noteid: { type: Number, default: 9090 },
