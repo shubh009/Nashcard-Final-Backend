@@ -95,7 +95,7 @@ app.post("/getprofile", async (req, resp) => {
       resp.send(profile);
     } else {
       resp.send({
-        result: "No user found. Please enter correct email & password"
+        result: "No user found. Please enter correct email & password",
       });
     }
   } else {
@@ -107,8 +107,8 @@ app.patch("/updateprofileFromUser", async (req, resp) => {
   const { userid, lastname } = req.body;
   const Ufirstname = req.body.name;
   const Ucontact = req.body.contact;
- 
-const email = req.body.email
+
+  const email = req.body.email;
   let user = await User.findOneAndUpdate(
     { userid: userid },
     {
@@ -116,7 +116,7 @@ const email = req.body.email
         name: Ufirstname,
         lastname: lastname,
         contact: parseInt(Ucontact),
-      }
+      },
     },
     { new: true }
   );
@@ -133,7 +133,7 @@ app.patch("/updateprofile", async (req, resp) => {
   const city = req.body.city;
   const state = req.body.stat;
   const pincode = req.body.pincode;
-const email = req.body.email
+  const email = req.body.email;
   let user = await User.findOneAndUpdate(
     { userid: userid },
     {
@@ -141,12 +141,12 @@ const email = req.body.email
         name: Ufirstname,
         astname: lastname,
         contact: parseInt(Ucontact),
-        email:email,
-        address:address,
-        city:city,
-        state:state,
-        pincode:parseInt(pincode)
-      }
+        email: email,
+        address: address,
+        city: city,
+        state: state,
+        pincode: parseInt(pincode),
+      },
     },
     { new: true }
   );
@@ -156,7 +156,7 @@ const email = req.body.email
 });
 
 app.patch("/updateaddress", async (req, resp) => {
-  const  userid  = req.body.userid;
+  const userid = req.body.userid;
   const address = req.body.address;
   const city = req.body.city;
   const state = req.body.state;
@@ -166,11 +166,11 @@ app.patch("/updateaddress", async (req, resp) => {
     { userid: userid },
     {
       $set: {
-        address:address,
-        city:city,
-        state:state,
-        pincode:pincode
-      }
+        address: address,
+        city: city,
+        state: state,
+        pincode: pincode,
+      },
     },
     { new: true }
   );
@@ -1431,6 +1431,7 @@ app.post("/upload-grades", async (req, res) => {
     }
   });
   try {
+    console.log(uploadPath);
     fs.createReadStream(uploadPath)
       .pipe(
         csv.parse({
@@ -1447,13 +1448,24 @@ app.post("/upload-grades", async (req, res) => {
       )
       .on("error", (err) => console.log(err))
       .on("data", (row) => {
+        console.log(row, "row");
         allGrades.push({ ...row });
       })
       .on("end", async (rowCount) => {
-        for (var i = 1; i <= rowCount; i++) {
-          let r1 = new Grades(allGrades[i]);
+        // console.log(allGrades, "allGrades");
+        let newGrades = allGrades.filter(
+          (grade) => grade.ordernumber !== "ordernumber"
+        );
+        for (const grade of newGrades) {
+          let r1 = new Grades(grade);
           let result = await r1.save();
+          console.log(result);
         }
+        // console.log(newGrades, "newGrades");
+        // for (var i = 1; i <= rowCount; i++) {
+        //   let r1 = new Grades(allGrades[i]);
+
+        // }
       });
   } catch (err) {
     console.log(err);
