@@ -88,19 +88,41 @@ app.post("/login", async (req, resp) => {
 app.post("/getprofile", async (req, resp) => {
   if (req.body.userid) {
     let profile = await User.findOne({ userid: req.body.userid }).select(
-      "name lastname email contact "
+      "name lastname email contact address city pincode state"
     );
     console.log(profile);
     if (profile) {
       resp.send(profile);
     } else {
       resp.send({
-        result: "No user found. Please enter correct email & password",
+        result: "No user found. Please enter correct email & password"
       });
     }
   } else {
     resp.send({ result: "Email & Password both are required for login." });
   }
+});
+
+app.patch("/updateprofileFromUser", async (req, resp) => {
+  const { userid, lastname } = req.body;
+  const Ufirstname = req.body.name;
+  const Ucontact = req.body.contact;
+ 
+const email = req.body.email
+  let user = await User.findOneAndUpdate(
+    { userid: userid },
+    {
+      $set: {
+        name: Ufirstname,
+        lastname: lastname,
+        contact: parseInt(Ucontact),
+      }
+    },
+    { new: true }
+  );
+  resp.send({ user: "Profile Information has been updated" });
+
+  // console.log(newUser);
 });
 
 app.patch("/updateprofile", async (req, resp) => {
@@ -111,20 +133,44 @@ app.patch("/updateprofile", async (req, resp) => {
   const city = req.body.city;
   const state = req.body.stat;
   const pincode = req.body.pincode;
-  const email = req.body.email;
+const email = req.body.email
   let user = await User.findOneAndUpdate(
     { userid: userid },
     {
       $set: {
         name: Ufirstname,
-        lastname: lastname,
+        astname: lastname,
         contact: parseInt(Ucontact),
-        email: email,
-        address: address,
-        city: city,
-        state: state,
-        pincode: parseInt(pincode),
-      },
+        email:email,
+        address:address,
+        city:city,
+        state:state,
+        pincode:parseInt(pincode)
+      }
+    },
+    { new: true }
+  );
+  resp.send({ user: "Profile Information has been updated" });
+
+  // console.log(newUser);
+});
+
+app.patch("/updateaddress", async (req, resp) => {
+  const  userid  = req.body.userid;
+  const address = req.body.address;
+  const city = req.body.city;
+  const state = req.body.state;
+  const pincode = req.body.pincode;
+  console.log(req.body.state);
+  let user = await User.findOneAndUpdate(
+    { userid: userid },
+    {
+      $set: {
+        address:address,
+        city:city,
+        state:state,
+        pincode:pincode
+      }
     },
     { new: true }
   );
@@ -152,7 +198,7 @@ app.post("/sendorderemail", async (req, resp) => {
 
     transporter.sendMail(message, function (error, info) {
       if (error) {
-        resp.status(500).json("Email sent: " + info.response);
+        resp.status(500).json("Email not sent: " + info.response);
       } else {
         console.log("Email sent: " + info.response);
       }
