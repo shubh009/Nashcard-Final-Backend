@@ -923,7 +923,9 @@ app.post("/getorderdetails", async (req, resp) => {
   }
 });
 
-app.post("/profilechangepassword", async (req, resp) => {
+app.post( "/profilechangepassword", async ( req, resp ) =>
+{
+  console.log( req.body.email );
   let user = await User.findOne({
     email: req.body.email,
   });
