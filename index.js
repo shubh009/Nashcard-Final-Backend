@@ -331,7 +331,8 @@ app.post("/addcard", async (req, resp) => {
 });
 
 app.post("/getcardlist", async (req, resp) => {
-  const user = await User.findOne( { userid: req.body.userid }, {orderid: req.body.orderid });
+  const user = await User.findOne( { userid: req.body.userid, orderid: req.body.orderid } );
+  console.log(req.body.userid, req.body.orderid)
   if (!user) {
     return resp
       .status(401)
