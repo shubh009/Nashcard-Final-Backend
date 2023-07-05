@@ -181,8 +181,10 @@ app.patch("/updateaddress", async (req, resp) => {
 
 app.post( "/sendorderemail", async ( req, resp ) =>
 {
-  console.log(req.body.uemail)
-  if (req.body.uemail) {
+ 
+  if ( req.body.uemail )
+  {
+     console.log(req.body.uemail)
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -198,13 +200,14 @@ app.post( "/sendorderemail", async ( req, resp ) =>
       text: "Thank you for your order with Nashcard. We will send you an email with order detail link. So, you can track your order. ",
     };
 
-    // transporter.sendMail(message, function (error, info) {
-    //   if (error) {
-    //     resp.status(500).json("Email not sent: ");
-    //   } else {
-    //     console.log("Email sent: ");
-    //   }
-    // });
+    transporter.sendMail(message, function (error, info) {
+      if (error) {
+        resp.status(500).json("Email not sent: ");
+      } else {
+        console.log( "Email sent: " );
+        resp.status(200).json("Email sent: ");
+      }
+    });
   } else {
     resp.status(500).json("Email Error: Email Not Found");
   }
