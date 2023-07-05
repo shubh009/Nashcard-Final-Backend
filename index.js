@@ -156,8 +156,6 @@ app.patch("/updateprofile", async (req, resp) => {
 });
 
 app.patch("/updateaddress", async (req, resp) => {
-  const dvalue = req.body.dvalue;
-  
   const userid = req.body.userid;
   const address = req.body.address;
   const city = req.body.city;
@@ -165,10 +163,7 @@ app.patch("/updateaddress", async (req, resp) => {
   const pincode = req.body.pincode;
   console.log(address)
   console.log(req.body.state);
-  
-  if ( dvalue == 1 )
-  {
-    let user = await User.findOneAndUpdate(
+  let user = await User.findOneAndUpdate(
     { userid: userid },
     {
       $set: {
@@ -181,25 +176,6 @@ app.patch("/updateaddress", async (req, resp) => {
     { new: true }
   );
   resp.send({ user: "Profile Information has been updated" });
-  }
-  else if ( dvalue == 2 )
-  {
-    let user = await User.findOneAndUpdate(
-    { userid: userid },
-    {
-      $set: {
-        officeAdress: address,
-        officeCity: city,
-        officeState: state,
-        officepincode: pincode,
-      },
-    },
-    { new: true }
-  );
-  resp.send({ user: "Office Address Information has been updated" });
-  }
-
-  
 
   // console.log(newUser);
 });
