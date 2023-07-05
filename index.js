@@ -179,7 +179,9 @@ app.patch("/updateaddress", async (req, resp) => {
   // console.log(newUser);
 });
 
-app.post("/sendorderemail", async (req, resp) => {
+app.post( "/sendorderemail", async ( req, resp ) =>
+{
+  console.log(req.body.uemail)
   if (req.body.uemail) {
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -196,13 +198,13 @@ app.post("/sendorderemail", async (req, resp) => {
       text: "Thank you for your order with Nashcard. We will send you an email with order detail link. So, you can track your order. ",
     };
 
-    transporter.sendMail(message, function (error, info) {
-      if (error) {
-        resp.status(500).json("Email not sent: " + info.response);
-      } else {
-        console.log("Email sent: " + info.response);
-      }
-    });
+    // transporter.sendMail(message, function (error, info) {
+    //   if (error) {
+    //     resp.status(500).json("Email not sent: ");
+    //   } else {
+    //     console.log("Email sent: ");
+    //   }
+    // });
   } else {
     resp.status(500).json("Email Error: Email Not Found");
   }
@@ -447,7 +449,7 @@ app.patch("/updatecard/:id/", async (req, resp) => {
 app.patch("/updateorderfinal/:orderid", async (req, resp) => {
   const orderid = req.params.orderid;
   const { userid, insuranceammount, textalert } = req.body;
-  console.log("I love you");
+  //console.log("I love you");
   const newUser = await User.findOneAndUpdate(
     { "orders.orderid": orderid, "orders.userid": userid },
     {
