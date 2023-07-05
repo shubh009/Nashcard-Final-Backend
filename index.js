@@ -330,34 +330,30 @@ app.post("/addcard", async (req, resp) => {
   }
 });
 
-app.post("/getcardlist", async (req, resp) => {
+app.post( "/getcardlist", async ( req, resp ) =>
+{
+  const orderid = req.body.orderid;
   const user = await User.findOne( { userid: req.body.userid } );
   
   if (!user) {
     return resp
       .status(401)
-      .json( { error: "User with that email doesn't exists" } )
+      .json( { error: "User with that email doesn't exists" } );
   }
+  //console.log( req.body.useridd, req.body.orderid )
   
-  let collection = [];
-  collection = await User.findOne( { userid: req.body.userid } );
-
-  collection
-    .filter({
-      cards: {
-        $elemMatch: {
-            orderid: orderid,
-          },
-      },
-    })
-    .toArray();
-
+  let getCards = user.cards.filter((cid) => {
+    if (orderid === cid.orderid.toString()) {
+      return cid;
+    }
+  } );
   
+  const cards = getCards;
 
-  if (collection.length === 0) {
+  if (cards.length === 0) {
     return resp.status(200).json({ isEmpty: true });
   } else {
-    resp.status(200).json({ isEmpty: false, cards: collection });
+    resp.status(200).json({ isEmpty: false, cards: cards });
   }
 });
 
