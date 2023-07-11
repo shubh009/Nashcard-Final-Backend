@@ -27,6 +27,9 @@ const reviewschema = new mongoose.Schema({
   },
   netdv:{
     type:Number
+  },
+  notloggedcadqty:{
+    type:Number
   }
 },{ timestamps: true });
 module.exports = mongoose.model("review", reviewschema);

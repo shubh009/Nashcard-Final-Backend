@@ -19,12 +19,14 @@ const testProfile = require("./DB/models/test");
 const project = require("./DB/models/project");
 const { request } = require("express");
 const fileUpload = require("express-fileupload");
-const psasubtracker = require("./DB/models/psasubtracker");
+const psasubtracker = require( "./DB/models/psasubtracker" );
+const reviewcards = require( "./DB/models/reviewsCards" ); 
 const axios = require("axios");
 const { ObjectId } = require("mongodb");
 var moment = require("moment");
 const connectDatabase = require("./DB/config");
-app.use(express.json());
+app.use( express.json() );
+
 
 app.use(fileUpload());
 var options = {
@@ -287,6 +289,19 @@ app.post("/order", async (req, resp) => {
   }
 });
 
+app.post( "/addReviewcard", async ( req, resp ) =>
+{
+  console.log( "Api is calling" );
+  let newreviewCard = new reviewcards(req.body);
+  let result = await newreviewCard.save();
+  result = result.toObject();
+  resp.status(200).json({ isSave: "true", Result: result });
+
+});
+
+
+
+
 app.post("/addcard", async (req, resp) => {
   const validuser = await User.findOne({ userid: req.body.userid });
 
@@ -314,13 +329,6 @@ app.post("/addcard", async (req, resp) => {
       { new: true }
     );
 
-    //code for add new card into user list
-
-    // validuser.cards.push(newcard);
-    // validuser.save();
-
-    //resp.status(200).json(newUser);
-
     const user = await User.findOne({ userid: req.body.userid });
     if (!user) {
       return resp
@@ -334,7 +342,27 @@ app.post("/addcard", async (req, resp) => {
       resp.status(200).json({ isEmpty: false, cards: cards });
     }
   }
-});
+} );
+
+app.post( "/getReviewcardlist", async ( req, resp ) =>
+{
+  const reviewid = req.body.reviewid;
+  const userid = req.body.userid;
+
+  const cardlist=await reviewcards.find({userid: userid, reviewid:reviewid  })
+
+  if (!cardlist) {
+    return resp
+      .status(401)
+      .json( { error: "No cards found" } );
+  }
+  else
+  {
+    resp.status(200).json({ isEmpty: false, CardList: cardlist });
+  }
+
+   
+})
 
 app.post( "/getcardlist", async ( req, resp ) =>
 {
@@ -1393,6 +1421,46 @@ app.post("/uploadGrades", (req, res) => {
     console.log(err);
     res.status(500).json({ error: err });
   }
+});
+
+app.post("/uploadReviewCards", (req, res) => {
+  const csv = require("fast-csv");
+  const fs = require("fs");
+  const path = require("path");
+  const filename = Date.now() + "_" + req.files.file.name;
+  const file = req.files.file;
+  console.log(filename, req.body.userid, req.body.reviewid);
+  let allCards = [];
+  let userData = { userid: req.body.userid, reviewid: req.body.reviewid };
+  let uploadPath = __dirname + "/uploads/" + filename;
+  file.mv(uploadPath, (err) => {
+    if (err) {
+      return res.send(err);
+    }
+  });
+  console.log( uploadPath );
+  try {
+      fs.createReadStream( uploadPath )
+      .pipe(csv.parse({ headers: true }))
+      .on("error", (err) => console.log(err))
+      .on("data", (row) => {
+        allCards.push({ ...userData, ...row });
+      })
+      .on( "end", async ( rowCount ) =>
+      {
+        //console.log( allCards );
+        const ReviewCards = await reviewcards.findOne({ userid: userData.userid});
+        ReviewCards.push(...allCards);
+        console.log(ReviewCards);
+        //user.files.push({ path: path.join(__dirname, "/uploads/", filename) });
+        ReviewCards.save();
+      });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: err });
+  }
+
+  res.status(200).json({ message: "ok" });
 });
 
 app.post("/upload", (req, res) => {
