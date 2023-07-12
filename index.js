@@ -375,9 +375,9 @@ app.post( "/getcardlist", async ( req, resp ) =>
       .json( { error: "User with that email doesn't exists" } );
   }
   //console.log( req.body.useridd, req.body.orderid )
-  
+  console.log( orderid );
   let getCards = user.cards.filter((cid) => {
-    if (orderid === cid.orderid.toString()) {
+    if (orderid === cid.orderid) {
       return cid;
     }
   } );
@@ -389,7 +389,9 @@ app.post( "/getcardlist", async ( req, resp ) =>
   } else {
     resp.status(200).json({ isEmpty: false, cards: cards });
   }
-});
+} );
+
+
 
 app.post("/getcarddetails/:_id/", async (req, resp) => {
   const _id = req.params._id;
@@ -985,6 +987,16 @@ app.post("/submitreview", async (req, resp) => {
   result = result.toObject();
   resp.send(result);
 });
+
+app.post("/getCompleteReviewList", async (req, resp) => {
+  let reviewlist = await reviews.find({
+  });
+  if (reviewlist) {
+    resp.send(reviewlist);
+  } else {
+    resp.send({ reviewlist: "No Review Found" });
+  }
+} );
 
 app.post("/getreviewlist", async (req, resp) => {
   let reviewlist = await reviews.find({
@@ -3406,7 +3418,7 @@ app.post("/get-paid-orders", async (req, res) => {
 app.post("/get-review", async (req, res) => {
   try {
     const status = req.body.status;
-    if (!status) {
+    if ( !status ){
       const userdetails = await ureviews.aggregate([
         {
           $lookup: {
@@ -3434,10 +3446,11 @@ app.post("/get-review", async (req, res) => {
             status: 1,
           },
         },
-      ]);
+      ] );
       return res.status(200).json(userdetails);
-    } else {
-      const userdetails = await ureviews.aggregate([
+    } else
+    {
+      const userdetails = await ureviews.aggregate( [
         {
           $match: {
             status: status,
