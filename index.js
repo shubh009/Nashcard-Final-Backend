@@ -19,14 +19,13 @@ const testProfile = require("./DB/models/test");
 const project = require("./DB/models/project");
 const { request } = require("express");
 const fileUpload = require("express-fileupload");
-const psasubtracker = require( "./DB/models/psasubtracker" );
-const reviewcards = require( "./DB/models/reviewsCards" ); 
+const psasubtracker = require("./DB/models/psasubtracker");
+const reviewcards = require("./DB/models/reviewsCards");
 const axios = require("axios");
 const { ObjectId } = require("mongodb");
 var moment = require("moment");
 const connectDatabase = require("./DB/config");
-app.use( express.json() );
-
+app.use(express.json());
 
 app.use(fileUpload());
 var options = {
@@ -163,7 +162,7 @@ app.patch("/updateaddress", async (req, resp) => {
   const city = req.body.city;
   const state = req.body.state;
   const pincode = req.body.pincode;
-  console.log(address)
+  console.log(address);
   console.log(req.body.state);
   let user = await User.findOneAndUpdate(
     { userid: userid },
@@ -182,12 +181,9 @@ app.patch("/updateaddress", async (req, resp) => {
   // console.log(newUser);
 });
 
-app.post( "/sendorderemail", async ( req, resp ) =>
-{
- 
-  if ( req.body.uemail )
-  {
-     console.log(req.body.uemail)
+app.post("/sendorderemail", async (req, resp) => {
+  if (req.body.uemail) {
+    console.log(req.body.uemail);
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -207,7 +203,7 @@ app.post( "/sendorderemail", async ( req, resp ) =>
       if (error) {
         resp.status(500).json("Email not sent: ");
       } else {
-        console.log( "Email sent: " );
+        console.log("Email sent: ");
         resp.status(200).json("Email sent: ");
       }
     });
@@ -289,18 +285,13 @@ app.post("/order", async (req, resp) => {
   }
 });
 
-app.post( "/addReviewcard", async ( req, resp ) =>
-{
-  console.log( "Api is calling" );
+app.post("/addReviewcard", async (req, resp) => {
+  console.log("Api is calling");
   let newreviewCard = new reviewcards(req.body);
   let result = await newreviewCard.save();
   result = result.toObject();
   resp.status(200).json({ isSave: "true", Result: result });
-
 });
-
-
-
 
 app.post("/addcard", async (req, resp) => {
   const validuser = await User.findOne({ userid: req.body.userid });
@@ -342,46 +333,41 @@ app.post("/addcard", async (req, resp) => {
       resp.status(200).json({ isEmpty: false, cards: cards });
     }
   }
-} );
+});
 
-app.post( "/getReviewcardlist", async ( req, resp ) =>
-{
+app.post("/getReviewcardlist", async (req, resp) => {
   const reviewid = req.body.reviewid;
   const userid = req.body.userid;
 
-  const cardlist=await reviewcards.find({userid: userid, reviewid:reviewid  })
+  const cardlist = await reviewcards.find({
+    userid: userid,
+    reviewid: reviewid,
+  });
 
   if (!cardlist) {
-    return resp
-      .status(401)
-      .json( { error: "No cards found" } );
-  }
-  else
-  {
+    return resp.status(401).json({ error: "No cards found" });
+  } else {
     resp.status(200).json({ isEmpty: false, CardList: cardlist });
   }
+});
 
-   
-})
-
-app.post( "/getcardlist", async ( req, resp ) =>
-{
+app.post("/getcardlist", async (req, resp) => {
   const orderid = req.body.orderid;
-  const user = await User.findOne( { userid: req.body.userid } );
-  
+  const user = await User.findOne({ userid: req.body.userid });
+
   if (!user) {
     return resp
       .status(401)
-      .json( { error: "User with that email doesn't exists" } );
+      .json({ error: "User with that email doesn't exists" });
   }
   //console.log( req.body.useridd, req.body.orderid )
-  console.log( orderid );
+  console.log(orderid);
   let getCards = user.cards.filter((cid) => {
     if (orderid === cid.orderid) {
       return cid;
     }
-  } );
-  
+  });
+
   const cards = getCards;
 
   if (cards.length === 0) {
@@ -389,9 +375,7 @@ app.post( "/getcardlist", async ( req, resp ) =>
   } else {
     resp.status(200).json({ isEmpty: false, cards: cards });
   }
-} );
-
-
+});
 
 app.post("/getcarddetails/:_id/", async (req, resp) => {
   const _id = req.params._id;
@@ -970,9 +954,8 @@ app.post("/getorderdetails", async (req, resp) => {
   }
 });
 
-app.post( "/profilechangepassword", async ( req, resp ) =>
-{
-  console.log( req.body.email );
+app.post("/profilechangepassword", async (req, resp) => {
+  console.log(req.body.email);
   let user = await User.findOne({
     email: req.body.email,
   });
@@ -989,14 +972,13 @@ app.post("/submitreview", async (req, resp) => {
 });
 
 app.post("/getCompleteReviewList", async (req, resp) => {
-  let reviewlist = await reviews.find({
-  });
+  let reviewlist = await reviews.find({});
   if (reviewlist) {
     resp.send(reviewlist);
   } else {
     resp.send({ reviewlist: "No Review Found" });
   }
-} );
+});
 
 app.post("/getreviewlist", async (req, resp) => {
   let reviewlist = await reviews.find({
@@ -1436,6 +1418,7 @@ app.post("/uploadGrades", (req, res) => {
 });
 
 app.post("/uploadReviewCards", (req, res) => {
+  console.log("here");
   const csv = require("fast-csv");
   const fs = require("fs");
   const path = require("path");
@@ -1450,22 +1433,23 @@ app.post("/uploadReviewCards", (req, res) => {
       return res.send(err);
     }
   });
-  console.log( uploadPath );
+  console.log(uploadPath);
   try {
-      fs.createReadStream( uploadPath )
+    fs.createReadStream(uploadPath)
       .pipe(csv.parse({ headers: true }))
       .on("error", (err) => console.log(err))
       .on("data", (row) => {
         allCards.push({ ...userData, ...row });
       })
-      .on( "end", async ( rowCount ) =>
-      {
+      .on("end", async (rowCount) => {
         //console.log( allCards );
-        const ReviewCards = await reviewcards.findOne({ userid: userData.userid});
-        ReviewCards.push(...allCards);
-        console.log(ReviewCards);
+
+        for (const card of allCards) {
+          let r1 = new reviewcards(card);
+          let result = await r1.save();
+        }
+
         //user.files.push({ path: path.join(__dirname, "/uploads/", filename) });
-        ReviewCards.save();
       });
   } catch (err) {
     console.log(err);
@@ -3418,7 +3402,7 @@ app.post("/get-paid-orders", async (req, res) => {
 app.post("/get-review", async (req, res) => {
   try {
     const status = req.body.status;
-    if ( !status ){
+    if (!status) {
       const userdetails = await ureviews.aggregate([
         {
           $lookup: {
@@ -3446,11 +3430,10 @@ app.post("/get-review", async (req, res) => {
             status: 1,
           },
         },
-      ] );
+      ]);
       return res.status(200).json(userdetails);
-    } else
-    {
-      const userdetails = await ureviews.aggregate( [
+    } else {
+      const userdetails = await ureviews.aggregate([
         {
           $match: {
             status: status,
