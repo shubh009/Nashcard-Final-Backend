@@ -25,6 +25,7 @@ const axios = require("axios");
 const { ObjectId } = require("mongodb");
 var moment = require("moment");
 const connectDatabase = require("./DB/config");
+const emp = require("./DB/models/emp");
 app.use(express.json());
 
 app.use(fileUpload());
@@ -32,7 +33,7 @@ var options = {
   origin: "*",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   preflightContinue: false,
-  optionsSuccessStatus: 204,
+  optionsSuccessStatus: 204
 };
 
 connectDatabase()
@@ -40,11 +41,12 @@ connectDatabase()
     console.log(process.env.PORT);
     app.listen(process.env.PORT, () => {
       console.log(
-        `Server started on Port : ${process.env.PORT} in ${process.env.NODE_ENV}`
+        `Server started on Port : ${process.env.PORT} in ${process.env
+          .NODE_ENV}`
       );
     });
   })
-  .catch((err) => {
+  .catch(err => {
     console.log(err);
   });
 
@@ -77,7 +79,7 @@ app.post("/login", async (req, resp) => {
         resp.send(emp);
       } else {
         resp.send({
-          result: "No user found. Please enter correct email & password",
+          result: "No user found. Please enter correct email & password"
         });
       }
     }
@@ -96,7 +98,7 @@ app.post("/getprofile", async (req, resp) => {
       resp.send(profile);
     } else {
       resp.send({
-        result: "No user found. Please enter correct email & password",
+        result: "No user found. Please enter correct email & password"
       });
     }
   } else {
@@ -116,8 +118,8 @@ app.patch("/updateprofileFromUser", async (req, resp) => {
       $set: {
         name: Ufirstname,
         lastname: lastname,
-        contact: parseInt(Ucontact),
-      },
+        contact: parseInt(Ucontact)
+      }
     },
     { new: true }
   );
@@ -146,8 +148,8 @@ app.patch("/updateprofile", async (req, resp) => {
         address: address,
         city: city,
         state: state,
-        pincode: parseInt(pincode),
-      },
+        pincode: parseInt(pincode)
+      }
     },
     { new: true }
   );
@@ -171,8 +173,8 @@ app.patch("/updateaddress", async (req, resp) => {
         address: address,
         city: city,
         state: state,
-        pincode: pincode,
-      },
+        pincode: pincode
+      }
     },
     { new: true }
   );
@@ -188,18 +190,19 @@ app.post("/sendorderemail", async (req, resp) => {
       service: "gmail",
       auth: {
         user: "gupta.shubhanshu007@gmail.com",
-        pass: "bjzvvlumhuimipwq",
-      },
+        pass: "bjzvvlumhuimipwq"
+      }
     });
 
     let message = {
       from: "gupta.shubhanshu007@gmail.com",
       to: req.body.uemail,
       subject: "Thanks For Your Order With Nashcard",
-      text: "Thank you for your order with Nashcard. We will send you an email with order detail link. So, you can track your order. ",
+      text:
+        "Thank you for your order with Nashcard. We will send you an email with order detail link. So, you can track your order. "
     };
 
-    transporter.sendMail(message, function (error, info) {
+    transporter.sendMail(message, function(error, info) {
       if (error) {
         resp.status(500).json("Email not sent: ");
       } else {
@@ -265,8 +268,8 @@ app.post("/order", async (req, resp) => {
         {
           noteid: req.body.noteid,
           adminid: req.body.adminid,
-          notes: req.body.notes,
-        },
+          notes: req.body.notes
+        }
       ],
       grades: [
         // {
@@ -276,7 +279,7 @@ app.post("/order", async (req, resp) => {
         //   // description: req.body.description,
         //   // gradeDate: req.body.gradeDate
         // }
-      ],
+      ]
     };
 
     validuser.orders.push(neworder);
@@ -311,7 +314,7 @@ app.post("/addcard", async (req, resp) => {
       cardnumber: req.body.cardnumber,
       playername: req.body.playername,
       attribute: req.body.attribute,
-      totalDV: req.body.totalDV,
+      totalDV: req.body.totalDV
     };
 
     const newUser = await User.findOneAndUpdate(
@@ -341,7 +344,7 @@ app.post("/getReviewcardlist", async (req, resp) => {
 
   const cardlist = await reviewcards.find({
     userid: userid,
-    reviewid: reviewid,
+    reviewid: reviewid
   });
 
   if (!cardlist) {
@@ -362,7 +365,7 @@ app.post("/getcardlist", async (req, resp) => {
   }
   //console.log( req.body.useridd, req.body.orderid )
   console.log(orderid);
-  let getCards = user.cards.filter((cid) => {
+  let getCards = user.cards.filter(cid => {
     if (orderid === cid.orderid) {
       return cid;
     }
@@ -387,7 +390,7 @@ app.post("/getcarddetails/:_id/", async (req, resp) => {
       .json({ error: "User with that email doesn't exists" });
   }
 
-  let card = user.cards.filter((card) => {
+  let card = user.cards.filter(card => {
     if (_id === card._id.toString()) {
       return card;
     }
@@ -404,7 +407,7 @@ app.delete("/dltCards/:id", async (req, resp) => {
   const cardid = req.params.id;
   const userid = req.body.userid;
   const getuser = await User.findOne({ userid });
-  const dltuser = getuser.cards.filter((cards) => {
+  const dltuser = getuser.cards.filter(cards => {
     if (cards._id.toString() !== cardid) {
       return cards;
     }
@@ -422,8 +425,8 @@ app.patch("/updatePSASUB", async (req, resp) => {
     {
       $set: {
         "orders.$.PSASub": PSASub,
-        "orders.$.orderStatus": orderstatus,
-      },
+        "orders.$.orderStatus": orderstatus
+      }
     },
     { new: true }
   );
@@ -442,7 +445,7 @@ app.patch("/updatecard/:id/", async (req, resp) => {
     playername,
     attribute,
     totalDV,
-    cardnumber,
+    cardnumber
   } = req.body;
 
   const newUser = await User.findOneAndUpdate(
@@ -455,8 +458,8 @@ app.patch("/updatecard/:id/", async (req, resp) => {
         "cards.$.playername": playername,
         "cards.$.attribute": attribute,
         "cards.$.totalDV": totalDV,
-        "cards.$.brand": brand,
-      },
+        "cards.$.brand": brand
+      }
     },
     { new: true }
   );
@@ -474,8 +477,8 @@ app.patch("/updateorderfinal/:orderid", async (req, resp) => {
       $set: {
         "orders.$.insuranceammount": insuranceammount,
         "orders.$.textmessagealert": textalert,
-        "orders.$.isordercomplete": true,
-      },
+        "orders.$.isordercomplete": true
+      }
     },
     { new: true }
   );
@@ -502,7 +505,7 @@ app.patch("/updateOrderFromAdmin/:orderid", async (req, resp) => {
     NumberOfKicksfromservicelevel,
     Kicksfromreview,
     NumberofReviewPasses,
-    PassesPrice,
+    PassesPrice
   } = req.body;
   const newUser = await User.findOneAndUpdate(
     { "orders.orderid": orderid, "orders.userid": userid },
@@ -521,8 +524,8 @@ app.patch("/updateOrderFromAdmin/:orderid", async (req, resp) => {
         "orders.$.NumberOfKicksfromservicelevel": NumberOfKicksfromservicelevel,
         "orders.$.Kicksfromreview": Kicksfromreview,
         "orders.$.NumberofReviewPasses": NumberofReviewPasses,
-        "orders.$.PassesPrice": PassesPrice,
-      },
+        "orders.$.PassesPrice": PassesPrice
+      }
     },
     { new: true }
   );
@@ -541,7 +544,7 @@ app.post("/emailsend", async (req, resp) => {
       let otpData = new OTP({
         email: req.body.email,
         otp: otpcode,
-        expirein: new Date().getTime() + 300 * 1000,
+        expirein: new Date().getTime() + 300 * 1000
       });
       let otpResponse = await otpData.save();
 
@@ -549,18 +552,18 @@ app.post("/emailsend", async (req, resp) => {
         service: "gmail",
         auth: {
           user: "gupta.shubhanshu007@gmail.com",
-          pass: "bjzvvlumhuimipwq",
-        },
+          pass: "bjzvvlumhuimipwq"
+        }
       });
 
       let message = {
         from: "gupta.shubhanshu007@gmail.com",
         to: req.body.email,
         subject: "Verify OTP Mail",
-        text: "Verify Your OTP With Nashcard and Your OTP Is: " + otpcode + ".",
+        text: "Verify Your OTP With Nashcard and Your OTP Is: " + otpcode + "."
       };
 
-      transporter.sendMail(message, function (error, info) {
+      transporter.sendMail(message, function(error, info) {
         if (error) {
           resp.status(500).json("Email sent: " + info.response);
         } else {
@@ -581,7 +584,7 @@ app.post("/changepassword", async (req, resp) => {
   const password = req.body.newPassword;
   let data = await otp.find({
     email: email,
-    Otp: Otp,
+    Otp: Otp
   });
 
   let responseType = "";
@@ -610,8 +613,8 @@ app.patch("/updateOrderStaus", async (req, resp) => {
     { "orders.orderid": orderid },
     {
       $set: {
-        "orders.$.orderStatus": orderStatus,
-      },
+        "orders.$.orderStatus": orderStatus
+      }
     },
     { new: true }
   );
@@ -628,22 +631,22 @@ app.post("/filterGradeList", async (req, resp) => {
   //step -1 to check subid
   if (subid) {
     user = await User.find({
-      "orders.PSASub": subid,
+      "orders.PSASub": subid
     }).select("orders");
     length = user.length;
   }
 
   if (length > 0) {
-    user.forEach((Nuser) => {
-      Nuser.orders.forEach((Norder) => {
-        Norder.grades.forEach((Ngrade) => {
+    user.forEach(Nuser => {
+      Nuser.orders.forEach(Norder => {
+        Norder.grades.forEach(Ngrade => {
           allGrades.push(Ngrade);
         });
       });
     });
 
     if (orderid) {
-      finalList = allGrades.filter((Lorderid) => {
+      finalList = allGrades.filter(Lorderid => {
         if (Lorderid.orderid === orderid) {
           return Lorderid;
         }
@@ -656,7 +659,7 @@ app.post("/filterGradeList", async (req, resp) => {
     }
 
     if (cert) {
-      NewfinalLIst = allGrades.filter((Lcer) => {
+      NewfinalLIst = allGrades.filter(Lcer => {
         if (Lcer.cert === cert) {
           return Lcer;
         }
@@ -716,10 +719,10 @@ app.post("/gradelistbyuserid", async (req, resp) => {
 
   let allGrades = [];
   let PSASub = "";
-  user.forEach((Nuser) => {
-    Nuser.orders.forEach((Norder) => {
+  user.forEach(Nuser => {
+    Nuser.orders.forEach(Norder => {
       PSASub = Norder.PSASub;
-      Norder.grades.forEach((Ngrade) => {
+      Norder.grades.forEach(Ngrade => {
         allGrades.push(Ngrade);
       });
     });
@@ -742,7 +745,7 @@ app.post("/allgradelist", async (req, resp) => {
   let user;
   if (datefilter) {
     user = await User.find({
-      "orders.$.grades.$.gradeDate": startdate,
+      "orders.$.grades.$.gradeDate": startdate
     }).select("orders");
     // console.log(datefilter);
   } else {
@@ -756,10 +759,10 @@ app.post("/allgradelist", async (req, resp) => {
   }
   let allGrades = [];
   let orderstatus = [];
-  user.forEach((Nuser) => {
-    Nuser.orders.forEach((Norder) => {
+  user.forEach(Nuser => {
+    Nuser.orders.forEach(Norder => {
       orderstatus = Norder.orderStatus;
-      Norder.grades.forEach((Ngrade) => {
+      Norder.grades.forEach(Ngrade => {
         allGrades.push(Ngrade);
       });
     });
@@ -784,7 +787,7 @@ app.post("/addgrade", async (req, resp) => {
     PSAUpchargeAmmount,
     frontImage,
     backimage,
-    poppedDate,
+    poppedDate
   } = req.body;
 
   let newdate = moment(poppedDate);
@@ -796,7 +799,7 @@ app.post("/addgrade", async (req, resp) => {
       .json({ error: "User with that email doesn't exists" });
   }
 
-  let orderFound = user.orders.filter((order) => {
+  let orderFound = user.orders.filter(order => {
     if (order.orderid === orderid) {
       return order;
     }
@@ -817,7 +820,7 @@ app.post("/addgrade", async (req, resp) => {
     PSAsub: PSAsub,
     PSAUpchargeAmmount: PSAUpchargeAmmount,
     frontImage: frontImage,
-    backimage: backimage,
+    backimage: backimage
   };
 
   orderFound.grades.push(orderGrade);
@@ -838,7 +841,7 @@ app.post("/addnotes", async (req, resp) => {
       .status(401)
       .json({ error: "User with that email doesn't exists" });
   }
-  let orderFound = user.orders.filter((order) => {
+  let orderFound = user.orders.filter(order => {
     if (order.orderid === orderid) {
       return order;
     }
@@ -852,7 +855,7 @@ app.post("/addnotes", async (req, resp) => {
   const orderNote = {
     noteid: Math.floor(Math.random() * 10000),
     adminid: Math.floor(Math.random() * 1000000),
-    notes: notes,
+    notes: notes
   };
   orderFound.ordernotes.push(orderNote);
   const newUser = await User.findOneAndUpdate(
@@ -873,7 +876,7 @@ app.delete("/deleteGrade", async (req, resp) => {
       .json({ error: "User with that email doesn't exists" });
   }
 
-  let orderFound = user.orders.filter((order) => {
+  let orderFound = user.orders.filter(order => {
     if (order.orderid === orderid) {
       return order;
     }
@@ -885,7 +888,7 @@ app.delete("/deleteGrade", async (req, resp) => {
       .status(401)
       .json({ error: "order with that id does not exists" });
   }
-  let orderGrades = orderFound.grades.filter((grade) => {
+  let orderGrades = orderFound.grades.filter(grade => {
     if (grade._id != _id) {
       //console.log(grade._id);
       return grade;
@@ -909,7 +912,7 @@ app.delete("/deletenote", async (req, resp) => {
       .status(401)
       .json({ error: "User with that email doesn't exists" });
   }
-  let orderFound = user.orders.filter((order) => {
+  let orderFound = user.orders.filter(order => {
     if (order.orderid === orderid) {
       return order;
     }
@@ -922,7 +925,7 @@ app.delete("/deletenote", async (req, resp) => {
       .status(401)
       .json({ error: "order with that id does not exists" });
   }
-  let ordernotes = orderFound.ordernotes.filter((note) => {
+  let ordernotes = orderFound.ordernotes.filter(note => {
     if (note.noteid !== noteid) {
       return note;
     }
@@ -945,7 +948,7 @@ app.post("/addservicelevel", async (req, resp) => {
 
 app.post("/getorderdetails", async (req, resp) => {
   let orderdetails = await User.findOne({
-    userid: req.body.userid,
+    userid: req.body.userid
   });
   if (orderdetails) {
     resp.send(orderdetails);
@@ -957,7 +960,7 @@ app.post("/getorderdetails", async (req, resp) => {
 app.post("/profilechangepassword", async (req, resp) => {
   console.log(req.body.email);
   let user = await User.findOne({
-    email: req.body.email,
+    email: req.body.email
   });
   user.password = req.body.password;
   user.save();
@@ -982,7 +985,7 @@ app.post("/getCompleteReviewList", async (req, resp) => {
 
 app.post("/getreviewlist", async (req, resp) => {
   let reviewlist = await reviews.find({
-    userid: req.body.userid,
+    userid: req.body.userid
   });
   if (reviewlist) {
     resp.send(reviewlist);
@@ -998,9 +1001,21 @@ app.post("/addhelp", async (req, resp) => {
   resp.send(result);
 });
 
+app.post("/registerNewUser", async (req, resp) => {
+  let newUser = new emp(req.body);
+  let result = await newUser.save();
+  result = result.toObject();
+  resp.send(result);
+});
+
+app.post("/getEmpList", async (req, resp) => {
+  let result = await emp.find({});
+  resp.send(result);
+});
+
 app.post("/gethelplist", async (req, resp) => {
   let helplist = await uhelp.find({
-    userid: req.body.userid,
+    userid: req.body.userid
   });
   if (helplist) {
     resp.send(helplist);
@@ -1011,7 +1026,7 @@ app.post("/gethelplist", async (req, resp) => {
 
 app.post("/getorderlist", async (req, resp) => {
   let user = await User.find({
-    userid: req.body.userid,
+    userid: req.body.userid
   }).select("-cards");
 
   const orders = user.orders;
@@ -1035,7 +1050,7 @@ app.post("/getadminfilterorderlist", async (req, resp) => {
   const status = req.body.orderStatus;
 
   let user = await User.find({
-    "orders.orderStatus": status,
+    "orders.orderStatus": status
   }).exec();
   if (user) {
     resp.send(user);
@@ -1054,10 +1069,10 @@ app.post("/getGradingListbyorderid", async (req, resp) => {
       orders: {
         grades: {
           $elemMatch: {
-            orderid: orderid,
-          },
-        },
-      },
+            orderid: orderid
+          }
+        }
+      }
     })
     .toArray();
   resp.status(200).json({ isEmpty: false, orders: orders });
@@ -1067,12 +1082,12 @@ app.post("/getOrderAndCardDetails/:uid", async (req, resp) => {
   const userid = req.params.uid;
   const orderid = req.body.orderid;
   let user = await User.findOne({
-    userid: userid,
+    userid: userid
   });
 
   let orders = user.orders;
 
-  orders = user.orders.filter((orders) => {
+  orders = user.orders.filter(orders => {
     if (orderid === orders.orderid.toString()) {
       return orders;
     }
@@ -1107,7 +1122,7 @@ app.post("/ordernotelist/:id", async (req, res) => {
   const userid = req.params.id;
   const orderid = req.body.orderid;
   const user = await User.findOne({
-    userid: userid,
+    userid: userid
   });
   if (!user) {
     return res
@@ -1115,7 +1130,7 @@ app.post("/ordernotelist/:id", async (req, res) => {
       .json({ error: "User with that email doesn't exists" });
   }
 
-  let order = user.orders.filter((order) => {
+  let order = user.orders.filter(order => {
     if (orderid === order.orderid.toString()) {
       return order;
     }
@@ -1157,8 +1172,8 @@ app.patch("/markorderpaid", async (req, resp) => {
     { "orders.orderid": orderid },
     {
       $set: {
-        "orders.$.isorderpaid": isorderpaid,
-      },
+        "orders.$.isorderpaid": isorderpaid
+      }
     },
     { new: true }
   );
@@ -1185,7 +1200,7 @@ app.post("/getOrderAndCustomerDetails/", async (req, resp) => {
     userContact: userContact,
     totalcards: totalcards,
     ordercount: ordercount,
-    orders: orders,
+    orders: orders
   });
 });
 
@@ -1197,8 +1212,8 @@ app.patch("/updateOrderStatus", async (req, resp) => {
     { "orders.orderid": _id },
     {
       $set: {
-        "orders.$.orderStatus": orderStatus,
-      },
+        "orders.$.orderStatus": orderStatus
+      }
     },
     { new: true }
   );
@@ -1220,18 +1235,18 @@ app.patch("/updateOrderStatus", async (req, resp) => {
         service: "gmail",
         auth: {
           user: "gupta.shubhanshu007@gmail.com",
-          pass: "bjzvvlumhuimipwq",
-        },
+          pass: "bjzvvlumhuimipwq"
+        }
       });
 
       let message = {
         from: "gupta.shubhanshu007@gmail.com",
         to: uemail,
         subject: mailsubject,
-        text: mailtext,
+        text: mailtext
       };
 
-      transporter.sendMail(message, function (error, info) {
+      transporter.sendMail(message, function(error, info) {
         if (error) {
           resp.status(500).json("Email sent: " + info.response);
         } else {
@@ -1288,18 +1303,18 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
       service: "gmail",
       auth: {
         user: "gupta.shubhanshu007@gmail.com",
-        pass: "bjzvvlumhuimipwq",
-      },
+        pass: "bjzvvlumhuimipwq"
+      }
     });
 
     let message = {
       from: "gupta.shubhanshu007@gmail.com",
       to: req.body.uemail,
       subject: mailsubject,
-      text: mailtext,
+      text: mailtext
     };
 
-    transporter.sendMail(message, function (error, info) {
+    transporter.sendMail(message, function(error, info) {
       if (error) {
         resp.status(500).json("Email sent: " + info.response);
       } else {
@@ -1326,21 +1341,22 @@ app.post("/userUpload", (req, res) => {
   console.log(userData);
   let uploadPath = __dirname + "/uploads/" + filename;
   console.log(uploadPath);
-  file.mv(uploadPath, (err) => {
+  file.mv(uploadPath, err => {
     if (err) {
       return res.send(err);
     }
   });
 
   try {
-    fs.createReadStream(uploadPath)
+    fs
+      .createReadStream(uploadPath)
       .pipe(csv.parse({ headers: true }))
-      .on("error", (err) => console.log(err))
-      .on("data", (row) => {
+      .on("error", err => console.log(err))
+      .on("data", row => {
         row["_id"] = new mongoose.Types.ObjectId();
         allUsers.push({ ...row });
       })
-      .on("end", async (rowCount) => {
+      .on("end", async rowCount => {
         for (i = 0; i <= rowCount; i++) {
           let r1 = new testProfile(allUsers[i]);
           let result = await r1.save();
@@ -1368,25 +1384,26 @@ app.post("/uploadGrades", (req, res) => {
   let userData = { userid: req.body.userid, orderid: req.body.orderid };
   console.log(filename, userData.userid, userData.orderid);
   let uploadPath = __dirname + "/uploads/" + filename;
-  file.mv(uploadPath, (err) => {
+  file.mv(uploadPath, err => {
     if (err) {
       return res.send(err);
     }
   });
 
   try {
-    fs.createReadStream(uploadPath)
+    fs
+      .createReadStream(uploadPath)
       .pipe(csv.parse({ headers: true }))
-      .on("error", (err) => console.log(err))
-      .on("data", (row) => {
+      .on("error", err => console.log(err))
+      .on("data", row => {
         allGrades.push({ ...userData, ...row });
       })
-      .on("end", async (rowCount) => {
+      .on("end", async rowCount => {
         const user = await User.findOne({
-          userid: userData.userid,
+          userid: userData.userid
         }).select("orders");
 
-        let orderFound = user.orders.filter((order) => {
+        let orderFound = user.orders.filter(order => {
           if (order.orderid === userData.orderid) {
             return order;
           }
@@ -1428,20 +1445,21 @@ app.post("/uploadReviewCards", (req, res) => {
   let allCards = [];
   let userData = { userid: req.body.userid, reviewid: req.body.reviewid };
   let uploadPath = __dirname + "/uploads/" + filename;
-  file.mv(uploadPath, (err) => {
+  file.mv(uploadPath, err => {
     if (err) {
       return res.send(err);
     }
   });
   console.log(uploadPath);
   try {
-    fs.createReadStream(uploadPath)
+    fs
+      .createReadStream(uploadPath)
       .pipe(csv.parse({ headers: true }))
-      .on("error", (err) => console.log(err))
-      .on("data", (row) => {
+      .on("error", err => console.log(err))
+      .on("data", row => {
         allCards.push({ ...userData, ...row });
       })
-      .on("end", async (rowCount) => {
+      .on("end", async rowCount => {
         //console.log( allCards );
 
         for (const card of allCards) {
@@ -1469,20 +1487,21 @@ app.post("/upload", (req, res) => {
   let allCards = [];
   let userData = { userid: req.body.userid, orderid: req.body.orderid };
   let uploadPath = __dirname + "/uploads/" + filename;
-  file.mv(uploadPath, (err) => {
+  file.mv(uploadPath, err => {
     if (err) {
       return res.send(err);
     }
   });
 
   try {
-    fs.createReadStream(uploadPath)
+    fs
+      .createReadStream(uploadPath)
       .pipe(csv.parse({ headers: true }))
-      .on("error", (err) => console.log(err))
-      .on("data", (row) => {
+      .on("error", err => console.log(err))
+      .on("data", row => {
         allCards.push({ ...userData, ...row });
       })
-      .on("end", async (rowCount) => {
+      .on("end", async rowCount => {
         const user = await User.findOne({ userid: userData.userid });
         user.cards.push(...allCards);
         console.log(user);
@@ -1506,14 +1525,15 @@ app.post("/upload-grades", async (req, res) => {
   const file = req.files.file;
   let allGrades = [];
   let uploadPath = __dirname + "/uploads/" + filename;
-  file.mv(uploadPath, (err) => {
+  file.mv(uploadPath, err => {
     if (err) {
       return res.send(err);
     }
   });
   try {
     console.log(uploadPath);
-    fs.createReadStream(uploadPath)
+    fs
+      .createReadStream(uploadPath)
       .pipe(
         csv.parse({
           headers: [
@@ -1522,20 +1542,20 @@ app.post("/upload-grades", async (req, res) => {
             "cert",
             "grade",
             "description",
-            "card",
+            "card"
           ],
-          ignoreHeaders: true,
+          ignoreHeaders: true
         })
       )
-      .on("error", (err) => console.log(err))
-      .on("data", (row) => {
+      .on("error", err => console.log(err))
+      .on("data", row => {
         console.log(row, "row");
         allGrades.push({ ...row });
       })
-      .on("end", async (rowCount) => {
+      .on("end", async rowCount => {
         // console.log(allGrades, "allGrades");
         let newGrades = allGrades.filter(
-          (grade) => grade.ordernumber !== "ordernumber"
+          grade => grade.ordernumber !== "ordernumber"
         );
         for (const grade of newGrades) {
           let r1 = new Grades(grade);
@@ -1563,24 +1583,24 @@ app.post("/get-uploaded-grades", async (req, res) => {
           from: "grades",
           localField: "orders.orderid",
           foreignField: "ordernumber",
-          as: "result",
-        },
+          as: "result"
+        }
       },
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $unwind: {
-          path: "$result",
-        },
+          path: "$result"
+        }
       },
       {
         $project: {
           _id: "$result._id",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           orderid: "$orders.orderid",
           servicelevel: "$orders.servicelevel",
@@ -1594,13 +1614,13 @@ app.post("/get-uploaded-grades", async (req, res) => {
           ordertotal: {
             $add: [
               {
-                $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                $multiply: ["$orders.cardcount", "$orders.pricepercard"]
               },
-              "$orders.insuranceammount",
-            ],
-          },
-        },
-      },
+              "$orders.insuranceammount"
+            ]
+          }
+        }
+      }
     ]);
     return res.status(200).json(autocompleteData);
   } catch (err) {
@@ -1616,35 +1636,33 @@ app.post("/get-uploaded-grades-for-mail", async (req, res) => {
           from: "grades",
           localField: "orders.orderid",
           foreignField: "ordernumber",
-          as: "result",
-        },
+          as: "result"
+        }
       },
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $unwind: {
-          path: "$result",
-        },
+          path: "$result"
+        }
       },
       {
         $project: {
           _id: "$result._id",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           orderid: "$orders.orderid",
           status: "$result.status",
           email: 1,
-          userid: 1,
-        },
-      },
+          userid: 1
+        }
+      }
     ]);
-    const uniqueEmails = [
-      ...new Set(autocompleteData.map((item) => item.email)),
-    ];
+    const uniqueEmails = [...new Set(autocompleteData.map(item => item.email))];
     // const uniqueEmails = ['umarakmal71@gmail.com','conser.in3@gmail.com']
     //For mail
     if (uniqueEmails) {
@@ -1653,18 +1671,18 @@ app.post("/get-uploaded-grades-for-mail", async (req, res) => {
           service: "gmail",
           auth: {
             user: "gupta.shubhanshu007@gmail.com",
-            pass: "bjzvvlumhuimipwq",
-          },
+            pass: "bjzvvlumhuimipwq"
+          }
         });
 
         let message = {
           from: "gupta.shubhanshu007@gmail.com",
           to: uniqueEmails[i],
           subject: "Nashcard: YourGgardes Are Ready.",
-          text: "Hi, Your grades are now ready for Order No:  4849 ",
+          text: "Hi, Your grades are now ready for Order No:  4849 "
         };
 
-        transporter.sendMail(message, function (error, info) {
+        transporter.sendMail(message, function(error, info) {
           if (error) {
             res.status(500).json("Email sent: " + info.response);
           } else {
@@ -1686,15 +1704,15 @@ app.post("/order-autocomplete", async (req, res) => {
     const autocompleteData = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $project: {
           _id: 0,
-          orderid: "$orders.orderid",
-        },
-      },
+          orderid: "$orders.orderid"
+        }
+      }
     ]);
     return res.status(200).json(autocompleteData);
   } catch (err) {
@@ -1712,13 +1730,13 @@ app.post("/order-search", async (req, res) => {
       const autocompleteData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $unwind: {
-            path: "$orders.grades",
-          },
+            path: "$orders.grades"
+          }
         },
         {
           $project: {
@@ -1732,22 +1750,22 @@ app.post("/order-search", async (req, res) => {
             PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
             status: "$orders.orderStatus",
             frontImage: "$orders.grades.frontImage",
-            backimage: "$orders.grades.backimage",
-          },
-        },
+            backimage: "$orders.grades.backimage"
+          }
+        }
       ]);
       return res.status(200).json(autocompleteData);
     } else if (!cert && !PSASub) {
       const autocompleteData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $unwind: {
-            path: "$orders.grades",
-          },
+            path: "$orders.grades"
+          }
         },
         {
           $project: {
@@ -1761,27 +1779,27 @@ app.post("/order-search", async (req, res) => {
             PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
             status: "$orders.orderStatus",
             frontImage: "$orders.grades.frontImage",
-            backimage: "$orders.grades.backimage",
-          },
+            backimage: "$orders.grades.backimage"
+          }
         },
         {
           $match: {
-            orderid: orderid,
-          },
-        },
+            orderid: orderid
+          }
+        }
       ]);
       return res.status(200).json(autocompleteData);
     } else if (!PSASub && !orderid) {
       const autocompleteData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $unwind: {
-            path: "$orders.grades",
-          },
+            path: "$orders.grades"
+          }
         },
         {
           $project: {
@@ -1795,27 +1813,27 @@ app.post("/order-search", async (req, res) => {
             PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
             status: "$orders.orderStatus",
             frontImage: "$orders.grades.frontImage",
-            backimage: "$orders.grades.backimage",
-          },
+            backimage: "$orders.grades.backimage"
+          }
         },
         {
           $match: {
-            cert: cert,
-          },
-        },
+            cert: cert
+          }
+        }
       ]);
       return res.status(200).json(autocompleteData);
     } else if (!cert && !orderid) {
       const autocompleteData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $unwind: {
-            path: "$orders.grades",
-          },
+            path: "$orders.grades"
+          }
         },
         {
           $project: {
@@ -1829,27 +1847,27 @@ app.post("/order-search", async (req, res) => {
             PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
             status: "$orders.orderStatus",
             frontImage: "$orders.grades.frontImage",
-            backimage: "$orders.grades.backimage",
-          },
+            backimage: "$orders.grades.backimage"
+          }
         },
         {
           $match: {
-            PSASub: PSASub,
-          },
-        },
+            PSASub: PSASub
+          }
+        }
       ]);
       return res.status(200).json(autocompleteData);
     } else if (cert && PSASub) {
       const autocompleteData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $unwind: {
-            path: "$orders.grades",
-          },
+            path: "$orders.grades"
+          }
         },
         {
           $project: {
@@ -1863,28 +1881,28 @@ app.post("/order-search", async (req, res) => {
             PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
             status: "$orders.orderStatus",
             frontImage: "$orders.grades.frontImage",
-            backimage: "$orders.grades.backimage",
-          },
+            backimage: "$orders.grades.backimage"
+          }
         },
         {
           $match: {
             PSASub: parseInt(PSASub),
-            cert: cert,
-          },
-        },
+            cert: cert
+          }
+        }
       ]);
       return res.status(200).json(autocompleteData);
     } else if (cert && orderid) {
       const autocompleteData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $unwind: {
-            path: "$orders.grades",
-          },
+            path: "$orders.grades"
+          }
         },
         {
           $project: {
@@ -1898,28 +1916,28 @@ app.post("/order-search", async (req, res) => {
             PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
             status: "$orders.orderStatus",
             frontImage: "$orders.grades.frontImage",
-            backimage: "$orders.grades.backimage",
-          },
+            backimage: "$orders.grades.backimage"
+          }
         },
         {
           $match: {
             orderid: orderid,
-            cert: cert,
-          },
-        },
+            cert: cert
+          }
+        }
       ]);
       return res.status(200).json(autocompleteData);
     } else {
       const autocompleteData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $unwind: {
-            path: "$orders.grades",
-          },
+            path: "$orders.grades"
+          }
         },
         {
           $project: {
@@ -1933,16 +1951,16 @@ app.post("/order-search", async (req, res) => {
             PSAUpchargeAmmount: "$orders.grades.PSAUpchargeAmmount",
             status: "$orders.orderStatus",
             frontImage: "$orders.grades.frontImage",
-            backimage: "$orders.grades.backimage",
-          },
+            backimage: "$orders.grades.backimage"
+          }
         },
         {
           $match: {
             cert: cert,
             orderid: orderid,
-            PSASub: PSASub,
-          },
-        },
+            PSASub: PSASub
+          }
+        }
       ]);
       return res.status(200).json(autocompleteData);
     }
@@ -1959,18 +1977,18 @@ app.post("/order-status", async (req, res) => {
     const autocompleteData = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $match: {
-          "orders.orderStatus": { $ne: "Quality And Assurance" },
-        },
+          "orders.orderStatus": { $ne: "Quality And Assurance" }
+        }
       },
       {
         $unwind: {
-          path: "$orders.grades",
-        },
+          path: "$orders.grades"
+        }
       },
       {
         $project: {
@@ -1984,9 +2002,9 @@ app.post("/order-status", async (req, res) => {
           PSAUpchargeAmount: "$orders.grades.PSAUpchargeAmmount",
           frontImage: "$orders.grades.frontImage",
           backimmage: "$orders.grades.backimage",
-          _id: "$orders.grades._id",
-        },
-      },
+          _id: "$orders.grades._id"
+        }
+      }
     ]);
     return res.status(200).json(autocompleteData);
   } catch (err) {
@@ -2003,18 +2021,18 @@ app.post("/order-search-service-tracking", async (req, res) => {
       const searchData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $match: {
-            "orders.servicelevel": servicelevel,
-          },
+            "orders.servicelevel": servicelevel
+          }
         },
         {
           $project: {
             name: {
-              $concat: ["$name", " ", "$lastname"],
+              $concat: ["$name", " ", "$lastname"]
             },
             orderid: "$orders.orderid",
             serviceLevel: "$orders.servicelevel",
@@ -2026,26 +2044,26 @@ app.post("/order-search-service-tracking", async (req, res) => {
             orderTotal: {
               $add: [
                 {
-                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"]
                 },
-                "$orders.insuranceammount",
-              ],
-            },
-          },
-        },
+                "$orders.insuranceammount"
+              ]
+            }
+          }
+        }
       ]);
       return res.status(200).json(searchData);
     } else {
       const searchData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $project: {
             name: {
-              $concat: ["$name", " ", "$lastname"],
+              $concat: ["$name", " ", "$lastname"]
             },
             orderid: "$orders.orderid",
             serviceLevel: "$orders.servicelevel",
@@ -2057,13 +2075,13 @@ app.post("/order-search-service-tracking", async (req, res) => {
             orderTotal: {
               $add: [
                 {
-                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"]
                 },
-                "$orders.insuranceammount",
-              ],
-            },
-          },
-        },
+                "$orders.insuranceammount"
+              ]
+            }
+          }
+        }
       ]);
       return res.status(200).json(searchData);
     }
@@ -2081,13 +2099,13 @@ app.post("/search-psa-orders", async (req, res) => {
       const searchData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $match: {
-            "orders.PSASub": parseInt(psasub),
-          },
+            "orders.PSASub": parseInt(psasub)
+          }
         },
         {
           $project: {
@@ -2100,21 +2118,21 @@ app.post("/search-psa-orders", async (req, res) => {
             orderTotal: {
               $add: [
                 {
-                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"]
                 },
-                "$orders.insuranceammount",
-              ],
-            },
-          },
-        },
+                "$orders.insuranceammount"
+              ]
+            }
+          }
+        }
       ]);
       return res.status(200).json(searchData);
     } else {
       const searchData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $project: {
@@ -2127,13 +2145,13 @@ app.post("/search-psa-orders", async (req, res) => {
             orderTotal: {
               $add: [
                 {
-                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"]
                 },
-                "$orders.insuranceammount",
-              ],
-            },
-          },
-        },
+                "$orders.insuranceammount"
+              ]
+            }
+          }
+        }
       ]);
       return res.status(200).json(searchData);
     }
@@ -2150,19 +2168,19 @@ app.post("/updated-order-status", async (req, res) => {
     const searchData = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $match: {
-          "orders.orderStatus": "Quality And Assurance",
-        },
+          "orders.orderStatus": "Quality And Assurance"
+        }
       },
       {
         $project: {
           userid: "$userid",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           _id: 1,
           orderid: "$orders.orderid",
@@ -2174,13 +2192,13 @@ app.post("/updated-order-status", async (req, res) => {
           orderTotal: {
             $add: [
               {
-                $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                $multiply: ["$orders.cardcount", "$orders.pricepercard"]
               },
-              "$orders.insuranceammount",
-            ],
-          },
-        },
-      },
+              "$orders.insuranceammount"
+            ]
+          }
+        }
+      }
     ]);
     return res.status(200).json(searchData);
   } catch (err) {
@@ -2196,13 +2214,13 @@ app.post("/card-tracking-search", async (req, res) => {
     const searchData = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $unwind: {
-          path: "$cards",
-        },
+          path: "$cards"
+        }
       },
       {
         $project: {
@@ -2215,10 +2233,10 @@ app.post("/card-tracking-search", async (req, res) => {
           dv: "$cards.totalDV",
           dateCreated: "$orders.createdate",
           ordername: {
-            $concat: ["$name", " ", "$lastname"],
-          },
-        },
-      },
+            $concat: ["$name", " ", "$lastname"]
+          }
+        }
+      }
     ]);
     return res.status(200).json(searchData);
   } catch (err) {
@@ -2235,18 +2253,18 @@ app.post("/card-search", async (req, res) => {
       const searchData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $match: {
-            "orders.orderid": orderid,
-          },
+            "orders.orderid": orderid
+          }
         },
         {
           $unwind: {
-            path: "$cards",
-          },
+            path: "$cards"
+          }
         },
         {
           $project: {
@@ -2268,31 +2286,31 @@ app.post("/card-search", async (req, res) => {
             orderTotal: {
               $add: [
                 {
-                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"]
                 },
-                "$orders.insuranceammount",
-              ],
-            },
-          },
-        },
+                "$orders.insuranceammount"
+              ]
+            }
+          }
+        }
       ]);
       return res.status(200).json(searchData);
     } else if (psasub) {
       const searchData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $match: {
-            "orders.PSASub": parseInt(psasub),
-          },
+            "orders.PSASub": parseInt(psasub)
+          }
         },
         {
           $unwind: {
-            path: "$cards",
-          },
+            path: "$cards"
+          }
         },
         {
           $project: {
@@ -2314,32 +2332,32 @@ app.post("/card-search", async (req, res) => {
             orderTotal: {
               $add: [
                 {
-                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"]
                 },
-                "$orders.insuranceammount",
-              ],
-            },
-          },
-        },
+                "$orders.insuranceammount"
+              ]
+            }
+          }
+        }
       ]);
       return res.status(200).json(searchData);
     } else if (psasub && orderid) {
       const searchData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $match: {
             "orders.PSASub": parseInt(psasub),
-            "orders.orderid": orderid,
-          },
+            "orders.orderid": orderid
+          }
         },
         {
           $unwind: {
-            path: "$cards",
-          },
+            path: "$cards"
+          }
         },
         {
           $project: {
@@ -2361,26 +2379,26 @@ app.post("/card-search", async (req, res) => {
             orderTotal: {
               $add: [
                 {
-                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"]
                 },
-                "$orders.insuranceammount",
-              ],
-            },
-          },
-        },
+                "$orders.insuranceammount"
+              ]
+            }
+          }
+        }
       ]);
       return res.status(200).json(searchData);
     } else {
       const searchData = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $unwind: {
-            path: "$cards",
-          },
+            path: "$cards"
+          }
         },
         {
           $project: {
@@ -2404,13 +2422,13 @@ app.post("/card-search", async (req, res) => {
             orderTotal: {
               $add: [
                 {
-                  $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                  $multiply: ["$orders.cardcount", "$orders.pricepercard"]
                 },
-                "$orders.insuranceammount",
-              ],
-            },
-          },
-        },
+                "$orders.insuranceammount"
+              ]
+            }
+          }
+        }
       ]);
       return res.status(200).json(searchData);
     }
@@ -2426,15 +2444,15 @@ app.post("/service-level-tracking-order-autocomplete", async (req, res) => {
     const autocompleteData = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $project: {
           _id: 0,
-          orderid: "$orders.servicelevel",
-        },
-      },
+          orderid: "$orders.servicelevel"
+        }
+      }
     ]);
     return res.status(200).json(autocompleteData);
   } catch (err) {
@@ -2449,14 +2467,14 @@ app.post("/get-data-service-tracking", async (req, res) => {
     const searchData = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $project: {
           _id: "$orders._id",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           orderid: "$orders.orderid",
           serviceLevel: "$orders.servicelevel",
@@ -2468,13 +2486,13 @@ app.post("/get-data-service-tracking", async (req, res) => {
           orderTotal: {
             $add: [
               {
-                $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                $multiply: ["$orders.cardcount", "$orders.pricepercard"]
               },
-              "$orders.insuranceammount",
-            ],
-          },
-        },
-      },
+              "$orders.insuranceammount"
+            ]
+          }
+        }
+      }
     ]);
     return res.status(200).json(searchData);
   } catch (err) {
@@ -2491,12 +2509,12 @@ app.post("/get-data-customers", async (req, res) => {
         $project: {
           _id: 1,
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           email: 1,
-          userid: 1,
-        },
-      },
+          userid: 1
+        }
+      }
     ]);
     return res.status(200).json(searchCustomers);
   } catch (err) {
@@ -2516,54 +2534,54 @@ app.post("/search-customers-address", async (req, res) => {
             {
               address: {
                 $regex: addressSearch,
-                $options: "i",
-              },
+                $options: "i"
+              }
             },
             {
               city: {
                 $regex: addressSearch,
-                $options: "i",
-              },
+                $options: "i"
+              }
             },
             {
               $expr: {
                 $regexMatch: {
                   input: {
-                    $toString: "$pincode",
+                    $toString: "$pincode"
                   },
-                  regex: addressSearch,
-                },
-              },
+                  regex: addressSearch
+                }
+              }
             },
             {
               state: {
                 $regex: addressSearch,
-                $options: "i",
-              },
-            },
-          ],
-        },
+                $options: "i"
+              }
+            }
+          ]
+        }
       },
       {
         $addFields: {
           pincode: {
-            $toString: "$pincode",
-          },
-        },
+            $toString: "$pincode"
+          }
+        }
       },
       {
         $project: {
           _id: 1,
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           email: 1,
           address: {
-            $concat: ["$address", ",", "$city", ",", "$state", ",", "$pincode"],
+            $concat: ["$address", ",", "$city", ",", "$state", ",", "$pincode"]
           },
-          contact: 1,
-        },
-      },
+          contact: 1
+        }
+      }
     ]);
     return res.status(200).json(searchCustomers);
   } catch (err) {
@@ -2578,20 +2596,20 @@ app.post("/psasub-autocomplete", async (req, res) => {
     const autocompleteData = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $addFields: {
-          psasub: { $toString: "$orders.PSASub" },
-        },
+          psasub: { $toString: "$orders.PSASub" }
+        }
       },
       {
         $project: {
           _id: 0,
-          orderid: "$psasub",
-        },
-      },
+          orderid: "$psasub"
+        }
+      }
     ]);
     return res.status(200).json(autocompleteData);
   } catch (err) {
@@ -2607,20 +2625,20 @@ app.post("/customer-user-details", async (req, res) => {
     const autocompleteData = await User.aggregate([
       {
         $match: {
-          _id: id,
-        },
+          _id: id
+        }
       },
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $project: {
           _id: 0,
-          orderid: "$psasub",
-        },
-      },
+          orderid: "$psasub"
+        }
+      }
     ]);
     return res.status(200).json(autocompleteData);
   } catch (err) {
@@ -2635,34 +2653,34 @@ app.post("/user-details-data-with-id", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $match: {
-          userid: parseInt(userid),
-        },
+          userid: parseInt(userid)
+        }
       },
       {
         $addFields: {
           pincode: {
-            $toString: "$pincode",
-          },
-        },
+            $toString: "$pincode"
+          }
+        }
       },
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $project: {
           _id: 1,
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           email: 1,
           contact: 1,
           address: {
-            $concat: ["$address", ",", "$city", ",", "$state", ",", "$pincode"],
-          },
-        },
-      },
+            $concat: ["$address", ",", "$city", ",", "$state", ",", "$pincode"]
+          }
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -2677,39 +2695,39 @@ app.post("/customers-unpaid-order", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $match: {
-          userid: parseInt(userid),
-        },
+          userid: parseInt(userid)
+        }
       },
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $project: {
           _id: 1,
-          ordersTotal: "$orders.isorderpaid",
-        },
+          ordersTotal: "$orders.isorderpaid"
+        }
       },
       {
         $group: {
           _id: null,
           ordersTotal: {
-            $sum: 1,
+            $sum: 1
           },
           unpaidOrders: {
             $sum: {
               $cond: [
                 {
-                  $eq: ["$ordersTotal", false],
+                  $eq: ["$ordersTotal", false]
                 },
                 1,
-                0,
-              ],
-            },
-          },
-        },
-      },
+                0
+              ]
+            }
+          }
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -2724,13 +2742,13 @@ app.post("/customers-orders", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $match: {
-          userid: parseInt(userid),
-        },
+          userid: parseInt(userid)
+        }
       },
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $project: {
@@ -2742,17 +2760,17 @@ app.post("/customers-orders", async (req, res) => {
           orderTotal: {
             $add: [
               {
-                $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+                $multiply: ["$orders.cardcount", "$orders.pricepercard"]
               },
-              "$orders.insuranceammount",
-            ],
+              "$orders.insuranceammount"
+            ]
           },
           paiddate: "$orders.paiddate",
           gradespoppedDate: "$orders.Gardespopdate",
           grcompanyname: "$orders.grcompanyname",
-          userid: 1,
-        },
-      },
+          userid: 1
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -2769,24 +2787,24 @@ app.post("/orders-details-perid", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $match: {
-          userid: parseInt(userid),
-        }, // 'orders._id':idperorder
+          userid: parseInt(userid)
+        } // 'orders._id':idperorder
       },
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $match: {
-          "orders.orderid": orderid,
-        }, // 'orders._id':idperorder
+          "orders.orderid": orderid
+        } // 'orders._id':idperorder
       },
       {
         $project: {
           _id: "$orders._id",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           email: 1,
           orderid: "$orders.orderid",
@@ -2795,7 +2813,7 @@ app.post("/orders-details-perid", async (req, res) => {
           totalcards: "$orders.cardcount",
           insuranceammount: "$orders.insuranceammount",
           orderTotal: {
-            $multiply: ["$orders.cardcount", "$orders.pricepercard"],
+            $multiply: ["$orders.cardcount", "$orders.pricepercard"]
           },
           localpickup: "$orders.localpickup",
           PSAUpcharge: "$orders.PSAUpcharge",
@@ -2810,9 +2828,9 @@ app.post("/orders-details-perid", async (req, res) => {
           PassesPrice: "$orders.PassesPrice",
           gradespoppedDate: "$orders.Gardespopdate",
           grcompanyname: "$orders.grcompanyname",
-          userid: 1,
-        },
-      },
+          userid: 1
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -2828,21 +2846,21 @@ app.post("/get-grades", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $match: {
-          userid: parseInt(userid),
-        },
+          userid: parseInt(userid)
+        }
       },
       {
         $lookup: {
           from: "grades",
           localField: "orders.orderid",
           foreignField: "ordernumber",
-          as: "result",
-        },
+          as: "result"
+        }
       },
       {
         $unwind: {
-          path: "$result",
-        },
+          path: "$result"
+        }
       },
       {
         $project: {
@@ -2855,9 +2873,9 @@ app.post("/get-grades", async (req, res) => {
           frontimage: "$result.frontimage",
           backimage: "$result.backimage",
           psasub: "$result.psasub",
-          userid: 1,
-        },
-      },
+          userid: 1
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -2874,13 +2892,13 @@ app.post("/get-shipping", async (req, res) => {
       const userdetails = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $match: {
-            "orders.PSASub": parseInt(psasub),
-          },
+            "orders.PSASub": parseInt(psasub)
+          }
         },
 
         {
@@ -2890,17 +2908,17 @@ app.post("/get-shipping", async (req, res) => {
             orderid: "$orders.orderid",
             psasub: "$orders.PSASub",
             userid: 1,
-            grname: "$orders.grcompanyname",
-          },
-        },
+            grname: "$orders.grcompanyname"
+          }
+        }
       ]);
       return res.status(200).json(userdetails);
     } else {
       const userdetails = await User.aggregate([
         {
           $unwind: {
-            path: "$orders",
-          },
+            path: "$orders"
+          }
         },
         {
           $project: {
@@ -2909,9 +2927,9 @@ app.post("/get-shipping", async (req, res) => {
             orderid: "$orders.orderid",
             psasub: "$orders.PSASub",
             userid: 1,
-            grname: "$orders.grcompanyname",
-          },
-        },
+            grname: "$orders.grcompanyname"
+          }
+        }
       ]);
       return res.status(200).json(userdetails);
     }
@@ -2927,16 +2945,16 @@ app.post("/review-orders", async (req, res) => {
     const userdetails = await ureviews.aggregate([
       {
         $match: {
-          userid: parseInt(userid),
-        },
+          userid: parseInt(userid)
+        }
       },
       {
         $project: {
           _id: 1,
           reviewid: 1,
-          status: 1,
-        },
-      },
+          status: 1
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -2952,9 +2970,9 @@ app.post("/get-grades-for-edit", async (req, res) => {
     const userdetails = await Grades.aggregate([
       {
         $match: {
-          ordernumber: orderid,
-        },
-      },
+          ordernumber: orderid
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -2971,30 +2989,30 @@ app.post("/order-notes", async (req, res) => {
           from: "employelogins",
           localField: "userid",
           foreignField: "adminid",
-          as: "result",
-        },
+          as: "result"
+        }
       },
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $unwind: {
-          path: "$result",
-        },
+          path: "$result"
+        }
       },
       {
         $project: {
           orders: 1,
           ordernotes: "$orders.ordernotes",
-          name: "$result.name",
-        },
+          name: "$result.name"
+        }
       },
       {
         $unwind: {
-          path: "$ordernotes",
-        },
+          path: "$ordernotes"
+        }
       },
       {
         $project: {
@@ -3002,9 +3020,9 @@ app.post("/order-notes", async (req, res) => {
           name: "$name",
           ordernumber: "$orders.orderid",
           noteDate: "$ordernotes.notedate",
-          ordernotes: "$ordernotes.notes",
-        },
-      },
+          ordernotes: "$ordernotes.notes"
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3019,8 +3037,8 @@ app.post("/get-customer-updatedata", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $match: {
-          userid: parseInt(userid),
-        },
+          userid: parseInt(userid)
+        }
       },
       {
         $project: {
@@ -3032,9 +3050,9 @@ app.post("/get-customer-updatedata", async (req, res) => {
           pincode: 1,
           state: 1,
           email: 1,
-          contact: 1,
-        },
-      },
+          contact: 1
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3047,23 +3065,23 @@ app.post("/get-card-log", async (req, res) => {
     const cardLogs = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $project: {
           _id: "$orders._id",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           orderid: "$orders.orderid",
           status: "$orders.orderStatus",
           servicelevel: "$orders.servicelevel",
           orderCreationDate: "$orders.createdate",
-          userid: 1,
-        },
+          userid: 1
+        }
       },
-      { $sort: { orderCreationDate: 1 } },
+      { $sort: { orderCreationDate: 1 } }
     ]);
     return res.status(200).json(cardLogs);
   } catch (err) {
@@ -3094,14 +3112,14 @@ app.post("/get-details-project", async (req, res) => {
 app.delete("/delete-project", async (req, res) => {
   try {
     const id = req.body.id;
-    await project.findByIdAndRemove(id).then((data) => {
+    await project.findByIdAndRemove(id).then(data => {
       if (!data) {
         res.status(404).send({
-          message: `Cannot delete`,
+          message: `Cannot delete`
         });
       } else {
         res.send({
-          message: "project was deleted successfully!",
+          message: "project was deleted successfully!"
         });
       }
     });
@@ -3135,8 +3153,8 @@ app.patch("/updateproject", async (req, resp) => {
         description: description,
         status: status,
         dueDate: dueDate,
-        assignedMember: assignedMember,
-      },
+        assignedMember: assignedMember
+      }
     },
     { new: true }
   );
@@ -3162,8 +3180,8 @@ app.patch("/update-grades", async (req, resp) => {
         grade: grade,
         psasub: pSASub,
         datepopped: datePooped,
-        psaupcharge: pSASubAmt,
-      },
+        psaupcharge: pSASubAmt
+      }
     },
     { new: true }
   );
@@ -3183,29 +3201,29 @@ app.post("/get-order-await", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $match: {
-          "orders.orderStatus": "Awaiting Customer Pickup", //Awaiting Customer Pickup
-        },
+          "orders.orderStatus": "Awaiting Customer Pickup" //Awaiting Customer Pickup
+        }
       },
       {
         $project: {
           _id: "$orders._id",
           orderid: "$orders.orderid",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           paystatus: "paid/unpaid",
           servicelevel: "$orders.servicelevel",
           userid: 1,
           totalcards: "$orders.cardcount",
           status: "$orders.orderStatus",
-          grname: "$orders.grcompanyname",
-        },
-      },
+          grname: "$orders.grcompanyname"
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3219,28 +3237,28 @@ app.post("/get-order-pickup", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $match: {
-          "orders.orderStatus": "Picked Up", //Picked Up
-        },
+          "orders.orderStatus": "Picked Up" //Picked Up
+        }
       },
       {
         $project: {
           _id: "$orders._id",
           orderid: "$orders.orderid",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           servicelevel: "$orders.servicelevel",
           userid: 1,
           totalcards: "$orders.cardcount",
           status: "$orders.orderStatus",
-          grname: "$orders.grcompanyname",
-        },
-      },
+          grname: "$orders.grcompanyname"
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3254,29 +3272,29 @@ app.post("/get-order-request-return", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $match: {
-          "orders.orderStatus": "Requested Returns", //Requested Returns
-        },
+          "orders.orderStatus": "Requested Returns" //Requested Returns
+        }
       },
       {
         $project: {
           _id: "$orders._id",
           orderid: "$orders.orderid",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           servicelevel: "$orders.servicelevel",
           userid: 1,
           totalcards: "$orders.cardcount",
           status: "$orders.orderStatus",
           email: 1,
-          grname: "$orders.grcompanyname",
-        },
-      },
+          grname: "$orders.grcompanyname"
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3290,21 +3308,21 @@ app.post("/get-order-newly-paid", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         //Newly Paid
         $match: {
-          "orders.orderStatus": "Newly Paid",
-        },
+          "orders.orderStatus": "Newly Paid"
+        }
       },
       {
         $project: {
           _id: "$orders._id",
           orderid: "$orders.orderid",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           servicelevel: "$orders.servicelevel",
           userid: 1,
@@ -3312,9 +3330,9 @@ app.post("/get-order-newly-paid", async (req, res) => {
           status: "$orders.orderStatus",
           poppedDate: "$orders.Gardespopdate",
           paiddate: "$orders.paiddate",
-          grname: "$orders.grcompanyname",
-        },
-      },
+          grname: "$orders.grcompanyname"
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3329,8 +3347,8 @@ app.patch("/markaspickedup", async (req, resp) => {
     { "orders.orderid": orderid },
     {
       $set: {
-        "orders.$.orderStatus": "Picked Up",
-      },
+        "orders.$.orderStatus": "Picked Up"
+      }
     },
     { new: true }
   );
@@ -3341,8 +3359,8 @@ app.post("/get-sgc-photos", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $project: {
@@ -3351,9 +3369,9 @@ app.post("/get-sgc-photos", async (req, res) => {
           servicelevel: "$orders.servicelevel",
           userid: 1,
           psasub: "$orders.PSASub",
-          SGCphotoid: "$orders.SGCphotoid",
-        },
-      },
+          SGCphotoid: "$orders.SGCphotoid"
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3367,20 +3385,20 @@ app.post("/get-paid-orders", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $match: {
-          "orders.orderStatus": "Paid",
-        },
+          "orders.orderStatus": "Paid"
+        }
       },
       {
         $project: {
           _id: "$orders._id",
           orderid: "$orders.orderid",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           servicelevel: "$orders.servicelevel",
           userid: 1,
@@ -3388,9 +3406,9 @@ app.post("/get-paid-orders", async (req, res) => {
           poppedDate: "$orders.Gardespopdate",
           paiddate: "$orders.paiddate",
           grname: "$orders.grcompanyname",
-          email: 1,
-        },
-      },
+          email: 1
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3409,13 +3427,13 @@ app.post("/get-review", async (req, res) => {
             from: "users",
             localField: "userid",
             foreignField: "userid",
-            as: "result",
-          },
+            as: "result"
+          }
         },
         {
           $unwind: {
-            path: "$result",
-          },
+            path: "$result"
+          }
         },
         {
           $project: {
@@ -3423,34 +3441,34 @@ app.post("/get-review", async (req, res) => {
             email: "$result.email",
             userid: "$result.userid",
             name: {
-              $concat: ["$result.name", " ", "$result.lastname"],
+              $concat: ["$result.name", " ", "$result.lastname"]
             },
             reviewid: 1,
             companyname: 1,
-            status: 1,
-          },
-        },
+            status: 1
+          }
+        }
       ]);
       return res.status(200).json(userdetails);
     } else {
       const userdetails = await ureviews.aggregate([
         {
           $match: {
-            status: status,
-          },
+            status: status
+          }
         },
         {
           $lookup: {
             from: "users",
             localField: "userid",
             foreignField: "userid",
-            as: "result",
-          },
+            as: "result"
+          }
         },
         {
           $unwind: {
-            path: "$result",
-          },
+            path: "$result"
+          }
         },
         {
           $project: {
@@ -3458,13 +3476,13 @@ app.post("/get-review", async (req, res) => {
             email: "$result.email",
             userid: "$result.userid",
             name: {
-              $concat: ["$result.name", " ", "$result.lastname"],
+              $concat: ["$result.name", " ", "$result.lastname"]
             },
             reviewid: 1,
             companyname: 1,
-            status: 1,
-          },
-        },
+            status: 1
+          }
+        }
       ]);
       return res.status(200).json(userdetails);
     }
@@ -3478,8 +3496,8 @@ app.patch("/mark-as-shipped", async (req, resp) => {
     { "orders.orderid": orderid },
     {
       $set: {
-        "orders.$.orderStatus": "Shipped",
-      },
+        "orders.$.orderStatus": "Shipped"
+      }
     },
     { new: true }
   );
@@ -3489,14 +3507,14 @@ app.patch("/mark-as-shipped", async (req, resp) => {
 app.delete("/delete-review", async (req, res) => {
   try {
     const id = req.body.id;
-    await ureviews.findByIdAndRemove(id).then((data) => {
+    await ureviews.findByIdAndRemove(id).then(data => {
       if (!data) {
         res.status(404).send({
-          message: `Cannot delete`,
+          message: `Cannot delete`
         });
       } else {
         res.send({
-          message: "review was deleted successfully!",
+          message: "review was deleted successfully!"
         });
       }
     });
@@ -3540,7 +3558,7 @@ app.patch("/updatePsa-subtracker", async (req, resp) => {
     const psasubnum = req.body.subnumber;
     const headers = {
       Authorization:
-        "Bearer efIjuZZweQdXDXL149ELi1S-npq7N4kyxTko1XaJB8SCPzKKUzyBCq3nvGc2c0KynQ_fAFG0MxnyiNc_kMc_sBBytzvCNyppnx4T2mdF8EXD_pNPKSXmYEiYmOT0S2a7hiI3-jRlfsLAWIcI_AU2LKFKQe373Ez5p0rgCEkBBgFts_8MK_L4HsMzaL-OVwleJkveLOhH6RFveOBrR_gE6saJ2KxBE3ImqsSZovOBAOrgT1pZhQxYFHFkjdg5gVo4E5xAalUd_hQhZelrc-2A-2_5eQNF265cAT-KpWCig-rty_UJ",
+        "Bearer efIjuZZweQdXDXL149ELi1S-npq7N4kyxTko1XaJB8SCPzKKUzyBCq3nvGc2c0KynQ_fAFG0MxnyiNc_kMc_sBBytzvCNyppnx4T2mdF8EXD_pNPKSXmYEiYmOT0S2a7hiI3-jRlfsLAWIcI_AU2LKFKQe373Ez5p0rgCEkBBgFts_8MK_L4HsMzaL-OVwleJkveLOhH6RFveOBrR_gE6saJ2KxBE3ImqsSZovOBAOrgT1pZhQxYFHFkjdg5gVo4E5xAalUd_hQhZelrc-2A-2_5eQNF265cAT-KpWCig-rty_UJ"
     };
     const response = await axios.get(
       `https://api.psacard.com/publicapi/order/GetSubmissionProgress/${psasubnum}`,
@@ -3561,7 +3579,7 @@ app.patch("/updatePsa-subtracker", async (req, resp) => {
       const trackingnumber = await response.data.shipTrackingNumber;
 
       let valPsaStatus = [];
-      await response.data.orderProgressSteps.forEach((el) => {
+      await response.data.orderProgressSteps.forEach(el => {
         if (el.completed === false) {
           valPsaStatus.push(el.step);
         } else {
@@ -3589,8 +3607,8 @@ app.patch("/updatePsa-subtracker", async (req, resp) => {
             researchandid: researchandid,
             gradespopped: gradespopped,
             grading: grading,
-            psacurrentstatus: psacurrentstatus,
-          },
+            psacurrentstatus: psacurrentstatus
+          }
         },
         { new: true }
       );
@@ -3609,9 +3627,9 @@ app.post("/get-service-level", async (req, res) => {
         $project: {
           _id: 1,
           pricepercard: 1,
-          servicelevel: 1,
-        },
-      },
+          servicelevel: 1
+        }
+      }
     ]);
     return res.status(200).json(servicedetails);
   } catch (err) {
@@ -3638,8 +3656,8 @@ app.post("/get-status-subtracker", async (req, res) => {
         const userdetails = await psasubtracker.aggregate([
           {
             $match: {
-              psacurrentstatus: { $ne: "Completed" },
-            },
+              psacurrentstatus: { $ne: "Completed" }
+            }
           },
           {
             $project: {
@@ -3648,17 +3666,17 @@ app.post("/get-status-subtracker", async (req, res) => {
               creationdate: 1,
               psacurrentstatus: 1,
               gradespopped: 1,
-              updatedAt: 1,
-            },
-          },
+              updatedAt: 1
+            }
+          }
         ]);
         return res.status(200).json(userdetails);
       } else {
         const userdetails = await psasubtracker.aggregate([
           {
             $match: {
-              psacurrentstatus: status,
-            },
+              psacurrentstatus: status
+            }
           },
           {
             $project: {
@@ -3667,9 +3685,9 @@ app.post("/get-status-subtracker", async (req, res) => {
               creationdate: 1,
               psacurrentstatus: 1,
               gradespopped: 1,
-              updatedAt: 1,
-            },
-          },
+              updatedAt: 1
+            }
+          }
         ]);
         return res.status(200).json(userdetails);
       }
@@ -3682,9 +3700,9 @@ app.post("/get-status-subtracker", async (req, res) => {
             creationdate: 1,
             psacurrentstatus: 1,
             gradespopped: 1,
-            updatedAt: 1,
-          },
-        },
+            updatedAt: 1
+          }
+        }
       ]);
       return res.status(200).json(userdetails);
     }
@@ -3699,13 +3717,13 @@ app.post("/get-psa-orders-for-subtracker", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $match: {
-          "orders.orderStatus": "Cards Sent to Grading Company",
-        },
+          "orders.orderStatus": "Cards Sent to Grading Company"
+        }
       },
       {
         $project: {
@@ -3717,9 +3735,9 @@ app.post("/get-psa-orders-for-subtracker", async (req, res) => {
           cardssenttopsadate: "",
           cardrecievedbypsadate: "$orders.CardrecivedDate",
           status: "$orders.orderStatus",
-          grname: "$orders.grcompanyname",
-        },
-      },
+          grname: "$orders.grcompanyname"
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3732,8 +3750,8 @@ app.post("/get-orders-recieved", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $project: {
@@ -3743,14 +3761,14 @@ app.post("/get-orders-recieved", async (req, res) => {
           servicelevel: "$orders.servicelevel",
           userid: 1,
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           cardssenttopsadate: "",
           cardrecieveddate: "$orders.CardrecivedDate",
           status: "$orders.orderStatus",
-          grname: "$orders.grcompanyname",
-        },
-      },
+          grname: "$orders.grcompanyname"
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3765,13 +3783,13 @@ app.post("/get-orders-shipping", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $match: {
-          "orders.PSASub": parseInt(psasub),
-        },
+          "orders.PSASub": parseInt(psasub)
+        }
       },
       {
         $project: {
@@ -3779,20 +3797,20 @@ app.post("/get-orders-shipping", async (req, res) => {
           orderid: "$orders.orderid",
           psasub: "$orders.PSASub",
           name: {
-            $concat: ["$name", " ", "$lastname"],
+            $concat: ["$name", " ", "$lastname"]
           },
           status: "$orders.orderStatus",
           shippickup: "$orders.localpickup",
           location: {
-            $concat: ["$city", ",", "$state"],
-          },
-        },
+            $concat: ["$city", ",", "$state"]
+          }
+        }
       },
       {
         $unwind: {
-          path: "$grade",
-        },
-      },
+          path: "$grade"
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3850,7 +3868,7 @@ app.post("/create-order", async (req, resp) => {
       CustomerInvoicedDate: req.body.CustomerInvoicedDate,
       Orderconfirmed: false,
       ordernotes: [],
-      grades: [],
+      grades: []
     };
 
     validuser.orders.push(neworder);
@@ -3879,25 +3897,25 @@ app.post("/carddetails", async (req, res) => {
     const userdetails = await User.aggregate([
       {
         $unwind: {
-          path: "$orders",
-        },
+          path: "$orders"
+        }
       },
       {
         $unwind: {
-          path: "$cards",
-        },
+          path: "$cards"
+        }
       },
       {
         $match: {
-          "cards._id": new ObjectId(id),
-        },
+          "cards._id": new ObjectId(id)
+        }
       },
       {
         $match: {
           $expr: {
-            $eq: ["$orders.orderid", "$cards.orderid"],
-          },
-        },
+            $eq: ["$orders.orderid", "$cards.orderid"]
+          }
+        }
       },
       {
         $project: {
@@ -3914,9 +3932,9 @@ app.post("/carddetails", async (req, res) => {
           totaldv: "$cards.totalDV",
           qty: "$cards.qty",
           pricepercard: "$orders.pricepercard",
-          PSASub: "$orders.PSASub",
-        },
-      },
+          PSASub: "$orders.PSASub"
+        }
+      }
     ]);
     return res.status(200).json(userdetails);
   } catch (err) {
@@ -3924,6 +3942,51 @@ app.post("/carddetails", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+//Api for invoice
+app.post("/getInvoiceDetails", async (req, res) => {
+  try {
+    const id = req.body.id;
+    const userdetails = await User.aggregate([
+      {
+        $unwind: {
+          path: "$orders"
+        }
+      },
+      {
+        $match: {
+          "orders.orderid": id
+        }
+      },
+      {
+        $project: {
+          _id: "$orders._id",
+          userid: 1,
+          orderid: "$orders.orderid",
+          name: {
+            $concat: ["$name", " ", "$lastname"]
+          },
+          servicelevel: "$orders.servicelevel",
+          status: "$orders.orderStatus",
+          poppedDate: "$orders.Gardespopdate",
+          paiddate: "$orders.paiddate",
+          grname: "$orders.grcompanyname",
+          email: 1,
+          orderDesc: "$orders.orderType",
+          GradingOrdercardquantity: "$orders.cardcount",
+          insuranceammount: "$orders.insuranceammount",
+          GradingOrderUnitCost: "$orders.pricepercard",
+          shipping: "$orders.localpickup"
+        }
+      }
+    ]);
+    return res.status(200).json(userdetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 app.listen(5000);
 
 //5001 Server confirgure for nashcard application
