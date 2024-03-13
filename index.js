@@ -26,6 +26,9 @@ const { ObjectId } = require("mongodb");
 var moment = require("moment");
 const connectDatabase = require("./DB/config");
 const emp = require("./DB/models/emp");
+const { createOrderInvoiceHtml } = require("./helperFunctions/createOrderInvoiceHtml");
+const Invoice = require("./DB/models/invoice");
+const { default: puppeteer } = require("puppeteer");
 app.use(express.json());
 
 app.use(fileUpload());
@@ -202,7 +205,7 @@ app.post("/sendorderemail", async (req, resp) => {
         "Thank you for your order with Nashcard. We will send you an email with order detail link. So, you can track your order. "
     };
 
-    transporter.sendMail(message, function(error, info) {
+    transporter.sendMail(message, function (error, info) {
       if (error) {
         resp.status(500).json("Email not sent: ");
       } else {
@@ -563,7 +566,7 @@ app.post("/emailsend", async (req, resp) => {
         text: "Verify Your OTP With Nashcard and Your OTP Is: " + otpcode + "."
       };
 
-      transporter.sendMail(message, function(error, info) {
+      transporter.sendMail(message, function (error, info) {
         if (error) {
           resp.status(500).json("Email sent: " + info.response);
         } else {
@@ -618,6 +621,13 @@ app.patch("/updateOrderStaus", async (req, resp) => {
     },
     { new: true }
   );
+
+
+  // generate invoice here and send to user email
+
+
+
+
   resp.send({ user: "Order Has been updated" });
   // console.log(newUser);
 });
@@ -1246,7 +1256,7 @@ app.patch("/updateOrderStatus", async (req, resp) => {
         text: mailtext
       };
 
-      transporter.sendMail(message, function(error, info) {
+      transporter.sendMail(message, function (error, info) {
         if (error) {
           resp.status(500).json("Email sent: " + info.response);
         } else {
@@ -1263,11 +1273,75 @@ app.patch("/updateOrderStatus", async (req, resp) => {
 });
 
 app.post("/sendOrderStatusOnEmail", async (req, resp) => {
+
+  // create invoice here and send to user just 
+
+
   let Orderid = req.body.orderId;
   let OrderStatus = req.body.OrderStatus;
   let mailid = req.body.mailId;
   let mailtext = "";
   let mailsubject = "";
+
+  // Access the users collection using Mongoose connection
+  const usersCollection = mongoose.connection.db.collection('users');
+
+  // Find all users
+  const usersWithOrders = await usersCollection.aggregate([
+    { $unwind: "$orders" }, // Unwind to work with individual orders
+    { $match: { "orders.orderid": Orderid } }, // Match the order ID
+  ]).toArray();
+
+
+  // if no user found who have provider order id  found 
+  if (!usersWithOrders || usersWithOrders.length === 0) {
+    return resp.status(404).json({ error: "No order found with the specified order ID" });
+  }
+
+  // Generate a unique invoice number
+  let invoiceNumber = await generateUniqueInvoiceNumber();
+
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+
+
+  // create html of invoice
+  const htmlContent = createOrderInvoiceHtml(usersWithOrders, invoiceNumber);
+
+  // Generate PDF to html
+  await page.setContent(htmlContent);
+  const pdfBuffer = await page.pdf({
+    width: '1100px',
+    height: '1600px',
+    printBackground: true
+  });
+
+  await browser.close();
+
+  // Set due date 10 days from today's date
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 10);
+
+  // Save invoice details to MongoDB
+  const newInvoice = new Invoice({
+    status: 'pending',
+    invoiceNumber: invoiceNumber,
+    user: usersWithOrders[0].name + " " + usersWithOrders[0].lastname, // Assuming 'name' is the property containing the user's name
+    userID: usersWithOrders[0].userid,
+    amount: 1000, // Example amount
+    balance: 1000, // Example balance
+    dueDate: dueDate,
+    pdf: {
+      data: pdfBuffer,
+      contentType: 'application/pdf'
+    }
+  });
+
+  const savedInvoice = await newInvoice.save(); // Save the invoice to the database
+
+  // // Return the users with their matched orders
+  // return resp.status(200).json(usersWithOrders[0].name);
+
 
   if (mailid === 1) {
     mailtext = "Order No: " + Orderid + " Status: " + OrderStatus;
@@ -1311,10 +1385,14 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
       from: "gupta.shubhanshu007@gmail.com",
       to: req.body.uemail,
       subject: mailsubject,
-      text: mailtext
+      text: mailtext,
+      attachments: [{
+        filename: 'invoice.pdf',
+        content: pdfBuffer
+      }]
     };
 
-    transporter.sendMail(message, function(error, info) {
+    transporter.sendMail(message, function (error, info) {
       if (error) {
         resp.status(500).json("Email sent: " + info.response);
       } else {
@@ -1326,6 +1404,24 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
     resp.status(500).json("Email Error: Email Not Found");
   }
 });
+
+
+// Function to generate a unique invoice number
+async function generateUniqueInvoiceNumber() {
+  let randomNumber;
+  let existingInvoice;
+  do {
+    // Generate a random 5-digit number
+    randomNumber = Math.floor(10000 + Math.random() * 90000);
+
+    // Check if the number already exists in the database
+    existingInvoice = await Invoice.findOne({ invoiceNumber: randomNumber });
+  } while (existingInvoice);
+
+  return randomNumber;
+}
+
+
 
 app.post("/userUpload", (req, res) => {
   const csv = require("fast-csv");
@@ -1682,7 +1778,7 @@ app.post("/get-uploaded-grades-for-mail", async (req, res) => {
           text: "Hi, Your grades are now ready for Order No:  4849 "
         };
 
-        transporter.sendMail(message, function(error, info) {
+        transporter.sendMail(message, function (error, info) {
           if (error) {
             res.status(500).json("Email sent: " + info.response);
           } else {

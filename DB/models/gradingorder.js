@@ -10,7 +10,7 @@ const orderschema = new mongoose.Schema({
   localpickup: Number,
   totaldv: Number,
   insuranceammount: Number,
-  pricepercard: Number,
+  pricepercard: Number,  // (pricepercard * card count) + caculatedinsurancecost => calculated total card update
   isactive: Boolean,
   calculatedtotalcard: Number,
   caculatedinsurancecost: Number,
@@ -39,9 +39,9 @@ const orderschema = new mongoose.Schema({
   NumberofReviewPasses: Number,
   PassesPrice: Number,
   Gardespopdate: Date,
-  CardrecivedDate: Date,
+  CardrecivedDate: Date,  // order 
   CardsenttoPSADate: Date,
-  CustomerInvoicedDate: Date,
+  CustomerInvoicedDate: Date, // when we create invoice
   Orderconfirmed: Boolean,
 paiddate:Date,
   ordernotes: [
