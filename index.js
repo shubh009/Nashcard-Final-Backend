@@ -4192,6 +4192,30 @@ app.get("/getInvoiceList", async (req, res) => {
 });
 
 
+// get invoice pdf by invoice number
+app.get("/get/invoice/pdf/:invoiceNumber", async (req, res) => {
+  try {
+
+    // get invoice number from params
+    const invoiceNumber = req.params.invoiceNumber;
+
+    // find invoice with the help of invoiceNumber 
+    const invoice = await Invoice.findOne({ invoiceNumber: invoiceNumber }).select("pdf");
+
+    // if invoice not found
+    if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+    }
+
+    // send invoice in response
+    res.status(200).json({ data: invoice.pdf });
+
+} catch (error) {
+    console.error('Error fetching invoice PDF:', error);
+    res.status(500).json({ error: error.message });
+}
+});
+
 app.listen(5000);
 
 //5001 Server confirgure for nashcard application
