@@ -4254,6 +4254,75 @@ app.patch("/update/invoice/status", async (req, res) => {
   }
 });
 
+
+
+// resend invoice pdf on user email
+app.post("/resend/Invoice/PDF/On/Email", async (req, res) => {
+  try {
+
+    // get invoice number from body
+    const invoiceNumber = req.body.invoiceNumber;
+
+    // Check if invoice number is provided
+    if (!invoiceNumber) {
+      return res.status(400).json({ error: "Invoice number is required" });
+    }
+
+    // Find the invoice by its unique number
+    const invoice = await Invoice.findOne({ invoiceNumber: invoiceNumber });
+
+    // find user email from the Users collection with the help of userID
+    const userEmail = await User.findOne({ userid: invoice.userID }).select("email");
+
+    // if invoice not found
+    if (!invoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+
+    // start processign email
+    const transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: {
+        user: "gupta.shubhanshu007@gmail.com",
+        pass: "bjzvvlumhuimipwq"
+      }
+    });
+
+    // Setup email data
+    const mailOptions = {
+      from: "gupta.shubhanshu007@gmail.com",
+      to: userEmail.email, // Change to invoice recipient's email
+      subject: 'Resent Invoice',
+      text: 'Please find attached resent invoice.',
+      attachments: [{
+        filename: 'invoice.pdf',
+        content: invoice.pdf.data // Retrieve PDF data from the invoice
+      }]
+    };
+
+    // Send email
+    const emailInfo = await transporter.sendMail(mailOptions);
+
+    // Check if email sent successfully
+    if (emailInfo.accepted.length > 0) {
+      // Email sent successfully
+      res.status(200).json({
+        message: `Invoice successfully resent to user`,
+      });
+    } else {
+      // Failed to send email
+      res.status(500).json({
+        error: "Failed to resend invoice"
+      });
+    }
+  } catch (error) {
+
+    // handel error
+    console.error('Error resending invoice:', error);
+    res.status(500).json({ error: error.message });
+  }
+})
+
 app.listen(5000);
 
 //5001 Server confirgure for nashcard application
