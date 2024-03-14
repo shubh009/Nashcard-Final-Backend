@@ -29,6 +29,8 @@ const emp = require("./DB/models/emp");
 const { createOrderInvoiceHtml } = require("./helperFunctions/createOrderInvoiceHtml");
 const Invoice = require("./DB/models/invoice");
 const { default: puppeteer } = require("puppeteer");
+const newDeliveryAddress = require("./DB/models/newDeliveryAddressSchema")
+
 app.use(express.json());
 
 app.use(fileUpload());
@@ -4420,6 +4422,83 @@ app.get("/get/invoice/insights", async (req, res) => {
 })
 
 
+// new Delivery Address  
+app.post("/new/Delivery/Address/Added", async (req, res) => {
+  try {
+    const {  orderID } = req.body;
+
+    // Check if userID and orderID are provided in the request body
+    if ( !orderID) {
+      return res.status(400).json({ error: "UserID and OrderID are required" });
+    }   
+
+    const usersCollection = mongoose.connection.db.collection("users");
+
+    // Use aggregation pipeline to find the user and filter the order
+    const user = await usersCollection.aggregate([
+      { $unwind: "$orders" }, // Unwind to work with individual orders
+      { $match: { "orders.orderid": orderID } }, // Match the order ID
+      { $project: { _id: 0, userid: 1, email: 1 } }
+    ]).toArray();
+
+    // If user not found or order not found, return error
+    if (user.length === 0) {
+      return res.status(404).json({ error: "User or Order not found" });
+    }
+
+
+    // Create a new delivery address instance
+    const newAddress = new newDeliveryAddress({
+      userID: user[0].userid,
+      orderID: orderID,
+    });
+
+    // Save the new delivery address to the database
+    let newAddressSaved = await newAddress.save();
+
+
+    if (!newAddressSaved) {
+      return res.status(500).json({ error: "Failed to save new delivery address" });
+    }
+    else {
+      // Send the PDF via email
+      const transporter = nodemailer.createTransport({
+        service: 'Gmail',
+        auth: {
+          user: "gupta.shubhanshu007@gmail.com",
+          pass: "bjzvvlumhuimipwq"
+          }
+      });
+
+      // Setup email data
+      const mailOptions = {
+        from: "gupta.shubhanshu007@gmail.com",
+        to: user[0].email,
+        subject: 'Add New Delivery Address - Nash Card',
+        text: `Please click on the following link to add a new delivery address: http://localhost:3000/user/add-new-delivery-address/${newAddressSaved._id}`
+      };
+
+      // Send email
+      const emailInfo = await transporter.sendMail(mailOptions);
+
+      // Check if email sent successfully
+      if (emailInfo.accepted.length > 0) {
+        // Email sent successfully
+        res.status(200).json({
+          message: `Link successfully shared to update delivery address.`,
+        });
+      } else {
+        // Failed to send email
+        res.status(500).json({
+          error: "Failed to sent email."
+        });
+      }
+    }
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.listen(5000);
 
