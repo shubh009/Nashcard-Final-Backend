@@ -4204,16 +4204,54 @@ app.get("/get/invoice/pdf/:invoiceNumber", async (req, res) => {
 
     // if invoice not found
     if (!invoice) {
-        return res.status(404).json({ error: "Invoice not found" });
+      return res.status(404).json({ error: "Invoice not found" });
     }
 
     // send invoice in response
     res.status(200).json({ data: invoice.pdf });
 
-} catch (error) {
+  } catch (error) {
     console.error('Error fetching invoice PDF:', error);
     res.status(500).json({ error: error.message });
-}
+  }
+});
+
+
+// update invoice status
+app.patch("/update/invoice/status", async (req, res) => {
+  try {
+
+    // get invoiceID and status from body5t
+    const { invoiceId, newStatus } = req.body;
+
+    // Validate input
+    if (!invoiceId || !newStatus) {
+      return res.status(400).json({ error: "Invoice ID and new status are required" });
+    }
+
+    // find the invoice by _id
+    const invoice = await Invoice.findById(invoiceId);
+
+    // if the invoice not exists
+    if (!invoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+
+    // Update the status
+    invoice.status = newStatus;
+    await invoice.save();
+
+    // status successfully updated response
+    res.status(200).json({
+      message: `Invoice status updated successfully to ${newStatus}`,
+    });
+
+  } catch (error) {
+
+    // handel error
+    console.error('Error updating invoice status:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.listen(5000);
