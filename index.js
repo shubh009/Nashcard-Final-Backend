@@ -1328,8 +1328,8 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
     invoiceNumber: invoiceNumber,
     user: usersWithOrders[0].name + " " + usersWithOrders[0].lastname, // Assuming 'name' is the property containing the user's name
     userID: usersWithOrders[0].userid,
-    amount: 1000, // Example amount
-    balance: 1000, // Example balance
+    amount: (usersWithOrders[0].orders.pricepercard * usersWithOrders[0].orders.cardcount) + usersWithOrders[0].orders.caculatedinsurancecost, // Example amount
+    balance: (usersWithOrders[0].orders.pricepercard * usersWithOrders[0].orders.cardcount) + usersWithOrders[0].orders.caculatedinsurancecost, // Example balance
     dueDate: dueDate,
     pdf: {
       data: pdfBuffer,
@@ -1338,6 +1338,23 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
   });
 
   const savedInvoice = await newInvoice.save(); // Save the invoice to the database
+
+  // If the invoice is successfully saved, update CustomerInvoicedDate
+  if (savedInvoice) {
+    // Generate and set CustomerInvoicedDate to the current date
+    const customerInvoicedDate = new Date();
+
+    // Update the document in the database to reflect the changes
+    const updateUserWithOrder = await usersCollection.findOneAndUpdate(
+      { userid: usersWithOrders[0].userid },
+      { $set: { "orders.$[elem].CustomerInvoicedDate": customerInvoicedDate } }, // Updating the CustomerInvoicedDate field
+      { arrayFilters: [{ "elem.orderid": Orderid }] } // Filtering based on orderid
+    );
+
+    if (!updateUserWithOrder) {
+      return resp.status(404).json({ error: "Failed to update user with order ID" });
+    }
+  }
 
   // // Return the users with their matched orders
   // return resp.status(200).json(usersWithOrders[0].name);
@@ -4082,6 +4099,98 @@ app.post("/getInvoiceDetails", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
+// get all invoices
+app.get("/getInvoiceList", async (req, res) => {
+  try {
+    let {
+      date,
+      status,
+      invoiceNumber,
+      invoiceId,
+      clientName,
+      clientId,
+      sorting,
+      pageNumber,
+      limit,
+    } = req.query;
+
+    // Parse pagination parameters
+    pageNumber = parseInt(pageNumber) || 1;
+    limit = parseInt(limit) || 20;
+
+    // create query object
+    let query = {};
+
+    if (date) {
+      let parsedDate = new Date(date);
+
+      // Adjust the parsedDate to UTC to avoid timezone discrepancies
+      parsedDate.setUTCHours(0, 0, 0, 0);
+
+      // Set the query to filter by createdDate
+      query.createdDate = {
+        $gte: parsedDate, // Filter invoices with createdDate greater than or equal to parsedDate
+        $lt: new Date(parsedDate.getTime() + 24 * 60 * 60 * 1000) // Filter invoices with createdDate less than the next day
+      };
+    }
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (invoiceNumber) {
+      query.invoiceNumber = invoiceNumber;
+    }
+
+    if (invoiceId) {
+      query._id = invoiceId;
+    }
+
+    if (clientName) {
+      query.user = clientName;
+    }
+
+    if (clientId) {
+      query.userID = clientId;
+    }
+
+    // Sorting
+    let sortOptions = {};
+    if (sorting) {
+      if (sorting === "newest") {
+        sortOptions = { createdAt: -1 };
+      } else if (sorting === "oldest") {
+        sortOptions = { createdAt: 1 };
+      }
+    } else {
+      // Default sorting by newest
+      sortOptions = { createdAt: -1 };
+    }
+
+    // Fetch invoices with optional filters and pagination
+    const invoices = await Invoice.find(query)
+      .select("-pdf")
+      .sort(sortOptions)
+      .skip((pageNumber - 1) * limit)
+      .limit(limit);
+
+
+    // send response
+    res.status(200).json({
+      data: invoices,
+      pagination: {
+        pageNumber,
+        limit
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching invoices:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 app.listen(5000);
 

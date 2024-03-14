@@ -6,12 +6,13 @@ const createOrderInvoiceHtml = (user, invoiceNumber) => {
     const todayDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
     // Calculate line total for each item
+    const price = (user[0].orders.pricepercard * user[0].orders.cardcount) + user[0].orders.insuranceammount
     const lineTotal1 = user[0].orders.cardsaverqty * user[0].orders.cardsaverprice;
     const lineTotal2 = user[0].orders.NonLoggedCardCount * user[0].orders.Percardpriceofnonloggedcard;
     const lineTotal3 = user[0].orders.NumberofReviewPasses * user[0].orders.PassesPrice;
 
     // Calculate subtotal
-    const subtotal = lineTotal1 + lineTotal2 + lineTotal3;
+    const subtotal = price+lineTotal1 + lineTotal2 + lineTotal3;
 
     // Set values for Net, Subtotal, Total, Paid to Date, and Balance Due
     const net = subtotal;
@@ -262,7 +263,7 @@ const createOrderInvoiceHtml = (user, invoiceNumber) => {
                         <td>Grading Services </td>
                         <td>$${user[0].orders.pricepercard}</td>
                         <td>${user[0].orders.cardcount}</td>
-                        <td class="line_total_column">${(user[0].orders.pricepercard * user[0].orders.cardcount).toFixed(2)}</td>
+                        <td class="line_total_column">${((user[0].orders.pricepercard * user[0].orders.cardcount) + user[0].orders.caculatedinsurancecost).toFixed(2)}</td>
                     </tr>
                     <tr class="table_body_row">
                         <td class="item_column">Shipping</td>
