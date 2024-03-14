@@ -4323,6 +4323,104 @@ app.post("/resend/Invoice/PDF/On/Email", async (req, res) => {
   }
 })
 
+
+// get invoice insights
+app.get("/get/invoice/insights", async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    let startDate, endDate;
+    if (!date) {
+      // If date parameter is not provided, fetch all-time data
+      startDate = new Date(0); // Start of Unix time (1970-01-01)
+      endDate = new Date();    // Current date
+    } else {
+      // Calculate start and end dates based on provided date parameter
+      switch (date) {
+        case 'last_7_days':
+          startDate = new Date();
+          startDate.setDate(startDate.getDate() - 7);
+          endDate = new Date();
+          break;
+        case 'last_30_days':
+          startDate = new Date();
+          startDate.setDate(startDate.getDate() - 30);
+          endDate = new Date();
+          break;
+        case 'this_month':
+          startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+          endDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+          break;
+        case 'last_month':
+          startDate = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+          endDate = new Date(new Date().getFullYear(), new Date().getMonth(), 0);
+          break;
+        case 'this_year':
+          startDate = new Date(new Date().getFullYear(), 0, 1);
+          endDate = new Date(new Date().getFullYear(), 11, 31);
+          break;
+        case 'last_year':
+          startDate = new Date(new Date().getFullYear() - 1, 0, 1);
+          endDate = new Date(new Date().getFullYear() - 1, 11, 31);
+          break;
+        default:
+          throw new Error('Invalid date range');
+      }
+    }
+
+    const invoiceInsight = await Invoice.aggregate([
+      {
+        $match: {
+          createdDate: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $facet: {
+          total: [
+            {
+              $group: {
+                _id: null,
+                totalAmount: { $sum: "$amount" },
+                totalExpenses: { $sum: "$expenses" },
+                totalBalance: { $sum: "$balance" },
+                payments: { $sum: { $subtract: ["$amount", "$balance"] } }
+              }
+            }
+          ],
+          pendingCount: [
+            {
+              $match: {
+                status: "pending"
+              }
+            },
+            {
+              $count: "pendingCount"
+            }
+          ]
+        }
+      }
+    ]);
+
+    // Check if invoiceInsight array is empty
+    const data = invoiceInsight[0].total.length > 0 ? invoiceInsight[0] : {
+      total: [{
+        totalAmount: null,
+        totalExpenses: null,
+        totalBalance: null,
+        payments: null
+      }],
+      pendingCount: [{ pendingCount: invoiceInsight[0].pendingCount[0] }]
+    };
+
+    res.status(200).json({ data });
+  } catch (error) {
+    console.error('Error fetching invoice insights:', error);
+    res.status(500).json({ error: error.message });
+  }
+})
+
+
+
 app.listen(5000);
 
 //5001 Server confirgure for nashcard application
