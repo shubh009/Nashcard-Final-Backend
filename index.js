@@ -4582,7 +4582,7 @@ app.post("/update/delivery/timeline", async (req, res) => {
 });
 
 
-app.post("/get/delivery/timeline/:id", async (req, res) => {
+app.get("/get/delivery/timeline/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -4592,17 +4592,15 @@ app.post("/get/delivery/timeline/:id", async (req, res) => {
 
     // if delivery timeline not found
     if (!delivery) {
-      return res.status(404).json({ error: 'Delivery not found' });
+      return res.status(201).json({orderTimeline:[], message: 'No delivery timeline present' });
     }
 
     // Extract necessary fields from status timeline and sort by timestamp
     const sortedTimeline = delivery.statusTimeline.map(({ status, timestamp }) => ({ status, timestamp }))
-      .sort((a, b) => a.timestamp - b.timestamp);
+      .sort((a, b) => b.timestamp - a.timestamp);
 
     // send resposne
-    return res.status(200).json({
-      orderTimeline: sortedTimeline
-    });
+    return res.status(200).json({ orderTimeline: sortedTimeline, message: 'Request success' });
 
   } catch (error) {
 
