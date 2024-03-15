@@ -4179,11 +4179,11 @@ app.get("/getInvoiceList", async (req, res) => {
       .skip((pageNumber - 1) * limit)
       .limit(limit);
 
-       // Fetch total count of invoices for pagination calculation
-       const totalCount = await Invoice.countDocuments(query);
+    // Fetch total count of invoices for pagination calculation
+    const totalCount = await Invoice.countDocuments(query);
 
-       // Calculate total pages
-       const totalPages = Math.ceil(totalCount / limit);
+    // Calculate total pages
+    const totalPages = Math.ceil(totalCount / limit);
 
     // send response
     res.status(200).json({
@@ -4432,12 +4432,12 @@ app.get("/get/invoice/insights", async (req, res) => {
 // send Add New delivery Adddress Link On user Email
 app.post("/send/Add/New/Adddress/Link/On/Email", async (req, res) => {
   try {
-    const {  orderID } = req.body;
+    const { orderID } = req.body;
 
     // Check if userID and orderID are provided in the request body
-    if ( !orderID) {
+    if (!orderID) {
       return res.status(400).json({ error: "UserID and OrderID are required" });
-    }   
+    }
 
     const usersCollection = mongoose.connection.db.collection("users");
 
@@ -4474,7 +4474,7 @@ app.post("/send/Add/New/Adddress/Link/On/Email", async (req, res) => {
         auth: {
           user: "gupta.shubhanshu007@gmail.com",
           pass: "bjzvvlumhuimipwq"
-          }
+        }
       });
 
       // Setup email data
@@ -4515,7 +4515,7 @@ app.patch("/add/new/delivery/address/with/emailed/link", async (req, res) => {
 
     // Check if _id is provided in the query
     if (!_id) {
-        return res.status(400).json({ error: req });
+      return res.status(400).json({ error: req });
     }
 
     // Find the delivery address by _id
@@ -4523,7 +4523,7 @@ app.patch("/add/new/delivery/address/with/emailed/link", async (req, res) => {
 
     // If delivery address not found, return error
     if (!address) {
-        return res.status(404).json({ error: "invalid add new delivery address link" });
+      return res.status(404).json({ error: "invalid add new delivery address link" });
     }
 
     // Check if required fields are missing in the request body
@@ -4532,7 +4532,7 @@ app.patch("/add/new/delivery/address/with/emailed/link", async (req, res) => {
 
     // If any required field is missing, return error
     if (missingFields.length > 0) {
-        return res.status(400).json({ error: `Missing required fields: ${missingFields.join(', ')}` });
+      return res.status(400).json({ error: `Missing required fields: ${missingFields.join(', ')}` });
     }
 
     // Update the delivery address fields based on the request body
@@ -4547,9 +4547,9 @@ app.patch("/add/new/delivery/address/with/emailed/link", async (req, res) => {
     // Respond with the updated delivery address
     res.status(200).json({ message: "Delivery address updated successfully", updatedAddress });
 
-} catch (error) {
+  } catch (error) {
     res.status(500).json({ error: error.message });
-}
+  }
 
 });
 
@@ -4561,25 +4561,57 @@ app.post("/update/delivery/timeline", async (req, res) => {
   try {
 
     // find felivery timeline
-      let timeline = await deliveryTimeline.findOne({ orderID });
+    let timeline = await deliveryTimeline.findOne({ orderID });
 
-      // If timeline doesn't exist, create a new one
-      if (!timeline) {
-          timeline = new deliveryTimeline({ orderID, statusTimeline: [{ status }] });
-      } else {
-          // Update status timeline if already exist
-          timeline.statusTimeline.push({ status });
-      }
+    // If timeline doesn't exist, create a new one
+    if (!timeline) {
+      timeline = new deliveryTimeline({ orderID, statusTimeline: [{ status }] });
+    } else {
+      // Update status timeline if already exist
+      timeline.statusTimeline.push({ status });
+    }
 
-      // Save the updated delivery
-      await timeline.save();
+    // Save the updated delivery
+    await timeline.save();
 
-      return res.status(200).json({ message: 'Delivery status updated successfully' });
+    return res.status(200).json({ message: 'Delivery status updated successfully' });
   } catch (error) {
-      console.error('Error updating delivery status:', error);
-      return res.status(500).json({ error: error });
+    console.error('Error updating delivery status:', error);
+    return res.status(500).json({ error: error });
   }
 });
+
+
+app.post("/get/delivery/timeline/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+
+    // find delivery timeline by orderID
+    const delivery = await deliveryTimeline.findOne({ orderID: id });
+
+    // if delivery timeline not found
+    if (!delivery) {
+      return res.status(404).json({ error: 'Delivery not found' });
+    }
+
+    // Extract necessary fields from status timeline and sort by timestamp
+    const sortedTimeline = delivery.statusTimeline.map(({ status, timestamp }) => ({ status, timestamp }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    // send resposne
+    return res.status(200).json({
+      orderTimeline: sortedTimeline
+    });
+
+  } catch (error) {
+
+    // handel error
+    console.error('Error getting delivery timeline:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 app.listen(5000);
 
