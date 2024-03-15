@@ -4428,7 +4428,7 @@ app.get("/get/invoice/insights", async (req, res) => {
 })
 
 
-// new Delivery Address  
+// send Add New delivery Adddress Link On user Email
 app.post("/send/Add/New/Adddress/Link/On/Email", async (req, res) => {
   try {
     const {  orderID } = req.body;
@@ -4505,6 +4505,53 @@ app.post("/send/Add/New/Adddress/Link/On/Email", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+// add new delivery address with the help of recived link   
+app.patch("/add/new/delivery/address/with/emailed/link", async (req, res) => {
+  try {
+    const { _id } = req.body;
+
+    // Check if _id is provided in the query
+    if (!_id) {
+        return res.status(400).json({ error: req });
+    }
+
+    // Find the delivery address by _id
+    const address = await newDeliveryAddress.findById(_id);
+
+    // If delivery address not found, return error
+    if (!address) {
+        return res.status(404).json({ error: "invalid add new delivery address link" });
+    }
+
+    // Check if required fields are missing in the request body
+    const requiredFields = ['pincode', 'city', 'state', 'country'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+
+    // If any required field is missing, return error
+    if (missingFields.length > 0) {
+        return res.status(400).json({ error: `Missing required fields: ${missingFields.join(', ')}` });
+    }
+
+    // Update the delivery address fields based on the request body
+    address.pincode = req.body.pincode;
+    address.city = req.body.city;
+    address.state = req.body.state;
+    address.country = req.body.country;
+
+    // Save the updated delivery address
+    const updatedAddress = await address.save();
+
+    // Respond with the updated delivery address
+    res.status(200).json({ message: "Delivery address updated successfully", updatedAddress });
+
+} catch (error) {
+    res.status(500).json({ error: error.message });
+}
+
+});
+
 
 app.listen(5000);
 
