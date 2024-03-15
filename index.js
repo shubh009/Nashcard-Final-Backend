@@ -29,7 +29,8 @@ const emp = require("./DB/models/emp");
 const { createOrderInvoiceHtml } = require("./helperFunctions/createOrderInvoiceHtml");
 const Invoice = require("./DB/models/invoice");
 const { default: puppeteer } = require("puppeteer");
-const newDeliveryAddress = require("./DB/models/newDeliveryAddressSchema")
+const newDeliveryAddress = require("./DB/models/newDeliveryAddressSchema");
+const deliveryTimeline = require("./DB/models/deliveryTimeline");
 
 app.use(express.json());
 
@@ -4552,6 +4553,33 @@ app.patch("/add/new/delivery/address/with/emailed/link", async (req, res) => {
 
 });
 
+
+// update delivery timeline with the help of orderID
+app.post("/update/delivery/timeline", async (req, res) => {
+  const { status, orderID } = req.body;
+
+  try {
+
+    // find felivery timeline
+      let timeline = await deliveryTimeline.findOne({ orderID });
+
+      // If timeline doesn't exist, create a new one
+      if (!timeline) {
+          timeline = new deliveryTimeline({ orderID, statusTimeline: [{ status }] });
+      } else {
+          // Update status timeline if already exist
+          timeline.statusTimeline.push({ status });
+      }
+
+      // Save the updated delivery
+      await timeline.save();
+
+      return res.status(200).json({ message: 'Delivery status updated successfully' });
+  } catch (error) {
+      console.error('Error updating delivery status:', error);
+      return res.status(500).json({ error: error });
+  }
+});
 
 app.listen(5000);
 
