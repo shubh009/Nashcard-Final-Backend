@@ -4120,7 +4120,7 @@ app.get("/getInvoiceList", async (req, res) => {
 
     // Parse pagination parameters
     pageNumber = parseInt(pageNumber) || 1;
-    limit = parseInt(limit) || 20;
+    limit = parseInt(limit) || 10;
 
     // create query object
     let query = {};
@@ -4178,11 +4178,17 @@ app.get("/getInvoiceList", async (req, res) => {
       .skip((pageNumber - 1) * limit)
       .limit(limit);
 
+       // Fetch total count of invoices for pagination calculation
+       const totalCount = await Invoice.countDocuments(query);
+
+       // Calculate total pages
+       const totalPages = Math.ceil(totalCount / limit);
 
     // send response
     res.status(200).json({
       data: invoices,
       pagination: {
+        totalPages,
         pageNumber,
         limit
       }
@@ -4423,7 +4429,7 @@ app.get("/get/invoice/insights", async (req, res) => {
 
 
 // new Delivery Address  
-app.post("/new/Delivery/Address/Added", async (req, res) => {
+app.post("/send/Add/New/Adddress/Link/On/Email", async (req, res) => {
   try {
     const {  orderID } = req.body;
 
