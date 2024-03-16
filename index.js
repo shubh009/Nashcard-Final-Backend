@@ -31,6 +31,16 @@ const Invoice = require("./DB/models/invoice");
 const { default: puppeteer } = require("puppeteer");
 const newDeliveryAddress = require("./DB/models/newDeliveryAddressSchema");
 const deliveryTimeline = require("./DB/models/deliveryTimeline");
+const paypal = require('paypal-rest-sdk');
+
+
+
+// Configure PayPal
+paypal.configure({
+  mode: 'sandbox', // Change to 'live' for production
+  client_id: '',  // your client id
+  client_secret: ''  // client secret key
+});
 
 app.use(express.json());
 
@@ -221,7 +231,7 @@ app.post("/sendorderemail", async (req, resp) => {
   }
 });
 
-app.post("/order", async (req, resp) => {
+app.post(" ", async (req, resp) => {
   const validuser = await User.findOne({ userid: req.body.userid });
   console.log("save order" + req.body.userid);
   if (!validuser) {
@@ -1278,8 +1288,6 @@ app.patch("/updateOrderStatus", async (req, resp) => {
 app.post("/sendOrderStatusOnEmail", async (req, resp) => {
 
   // create invoice here and send to user just 
-
-
   let Orderid = req.body.orderId;
   let OrderStatus = req.body.OrderStatus;
   let mailid = req.body.mailId;
@@ -1340,28 +1348,78 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
     }
   });
 
+
   const savedInvoice = await newInvoice.save(); // Save the invoice to the database
+
+  // handel payment link part
+  const create_payment_json = {
+    intent: 'sale',
+    payer: {
+      payment_method: 'paypal'
+    },
+    redirect_urls: {
+      return_url: 'http://localhost:3000/success',
+      cancel_url: 'http://localhost:3000/cancel'
+    },
+    transactions: [{
+      amount: {
+        total: (usersWithOrders[0].orders.pricepercard * usersWithOrders[0].orders.cardcount) + usersWithOrders[0].orders.caculatedinsurancecost,
+        currency: 'USD'
+      },
+      description: 'Payment for your order'
+    }]
+  };
+
+  paypal.payment.create(create_payment_json, async (error, payment) => {
+    if (error) {
+      console.error(error);
+      resp.status(500).send('Failed to create payment');
+    } else {
+      for (let i = 0; i < payment.links.length; i++) {
+        if (payment.links[i].rel === 'approval_url') {
+
+          // Update the document in the database to reflect the changes
+          let updateUserWithOrder = await usersCollection.findOneAndUpdate(
+            { userid: usersWithOrders[0].userid }, // Filter criteria to match the user ID
+            {
+              $set: {
+                "orders.$[elem].paymentlink": payment.links[i].href, // Update paymentLink field
+              }
+            },
+            {
+              arrayFilters: [{ "elem.orderid": Orderid }] // Filtering based on orderid
+            }
+          );
+        }
+      }
+      // resp.status(500).send('Approval URL not found in PayPal response');
+    }
+  });
+  // handel paymentr link over here
+
 
   // If the invoice is successfully saved, update CustomerInvoicedDate
   if (savedInvoice) {
     // Generate and set CustomerInvoicedDate to the current date
     const customerInvoicedDate = new Date();
 
-    // Update the document in the database to reflect the changes
+    // // Update the document in the database to reflect the changes
     const updateUserWithOrder = await usersCollection.findOneAndUpdate(
-      { userid: usersWithOrders[0].userid },
-      { $set: { "orders.$[elem].CustomerInvoicedDate": customerInvoicedDate } }, // Updating the CustomerInvoicedDate field
-      { arrayFilters: [{ "elem.orderid": Orderid }] } // Filtering based on orderid
+      { userid: usersWithOrders[0].userid }, // Filter criteria to match the user ID
+      {
+        $set: {
+          "orders.$[elem].CustomerInvoicedDate": customerInvoicedDate // Update CustomerInvoicedDate field
+        }
+      },
+      {
+        arrayFilters: [{ "elem.orderid": Orderid }] // Filtering based on orderid
+      }
     );
 
     if (!updateUserWithOrder) {
       return resp.status(404).json({ error: "Failed to update user with order ID" });
     }
   }
-
-  // // Return the users with their matched orders
-  // return resp.status(200).json(usersWithOrders[0].name);
-
 
   if (mailid === 1) {
     mailtext = "Order No: " + Orderid + " Status: " + OrderStatus;
@@ -4592,7 +4650,7 @@ app.get("/get/delivery/timeline/:id", async (req, res) => {
 
     // if delivery timeline not found
     if (!delivery) {
-      return res.status(201).json({orderTimeline:[], message: 'No delivery timeline present' });
+      return res.status(201).json({ orderTimeline: [], message: 'No delivery timeline present' });
     }
 
     // Extract necessary fields from status timeline and sort by timestamp
