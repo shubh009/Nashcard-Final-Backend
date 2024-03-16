@@ -1358,8 +1358,8 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
       payment_method: 'paypal'
     },
     redirect_urls: {
-      return_url: 'http://localhost:3000/success',
-      cancel_url: 'http://localhost:3000/cancel'
+      return_url: 'http://localhost:3000/user/dashbaord',
+      cancel_url: 'http://localhost:3000/user/payment/Failed'
     },
     transactions: [{
       amount: {
