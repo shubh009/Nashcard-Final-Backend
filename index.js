@@ -1285,8 +1285,11 @@ app.patch("/updateOrderStatus", async (req, resp) => {
   resp.status(200).json(newUser);
 });
 
+
+
 app.post("/sendOrderStatusOnEmail", async (req, resp) => {
 
+  
   // create invoice here and send to user just 
   let Orderid = req.body.orderId;
   let OrderStatus = req.body.OrderStatus;
@@ -1348,6 +1351,7 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
   // Set the due date to the last day of the current month
   const dueDate = new Date(year, month, lastDayOfMonth);
 
+  const totalAmount = (usersWithOrders[0].orders.pricepercard * usersWithOrders[0].orders.cardcount) + usersWithOrders[0].orders.caculatedinsurancecost
   // Save invoice details to MongoDB
   const newInvoice = new Invoice({
     status: 'pending',
@@ -1355,8 +1359,8 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
     user: usersWithOrders[0].name + " " + usersWithOrders[0].lastname, // Assuming 'name' is the property containing the user's name
     userID: usersWithOrders[0].userid,
     OrderID: Orderid,
-    amount: (usersWithOrders[0].orders.pricepercard * usersWithOrders[0].orders.cardcount) + usersWithOrders[0].orders.caculatedinsurancecost, // Example amount
-    balance: (usersWithOrders[0].orders.pricepercard * usersWithOrders[0].orders.cardcount) + usersWithOrders[0].orders.caculatedinsurancecost, // Example balance
+    amount: totalAmount, // Example amount
+    balance: 0, // Example balance
     dueDate: dueDate,
     pdf: {
       data: pdfBuffer,
@@ -1374,7 +1378,7 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
       payment_method: 'paypal'
     },
     redirect_urls: {
-      return_url: 'https://resonant-cannoli-12adc6.netlify.app/user/payment/Success',
+      return_url: `http://localhost:8000/api/payment/success?orderId=${Orderid}&userId=${usersWithOrders[0].userid}&totalAmount=${totalAmount}&invoiceNumber=${invoiceNumber}`,
       cancel_url: 'https://resonant-cannoli-12adc6.netlify.app/user/payment/Failed'
     },
     transactions: [{
@@ -1514,6 +1518,56 @@ async function generateUniqueInvoiceNumber() {
 
   return randomNumber;
 }
+
+// payment success
+app.get("/api/payment/success", async (req, res) => {
+  const usersCollection = mongoose.connection.db.collection('users');
+
+  // Extract order ID and user ID from the query parameters
+  const orderId = req.query.orderId;
+  const userId = req.query.userId;
+  const totalAmount = req.query.totalAmount;
+  const invoiceNumber = req.query.invoiceNumber;
+
+  try {
+
+    let updateUserOrder  = await usersCollection.aggregate([
+      { $unwind: "$orders" }, // Unwind to work with individual orders
+      { $match: { "orders.orderid": orderId } }, // Match the order ID
+      {
+        $set: {
+          "orders.isorderpaid": true // Set the isOrderPaid field to true for the matched order
+        }
+      }
+    ]).toArray();
+    
+
+    // Check if the order was successfully updated
+    if (updateUserOrder) {
+
+      // Find the invoice by invoiceNumber and update its status to "Paid"
+      const updateInvoice = await Invoice.findOneAndUpdate(
+        { OrderID: orderId, invoiceNumber: invoiceNumber },
+        { $set: { status: "Paid", balance: totalAmount } },
+        { new: true }
+      );
+
+      // Check if the invoice was successfully updated
+      if (updateInvoice) {
+        console.log("Invoice status updated to Paid.");
+      } else {
+        console.log("Failed to update invoice status.");
+      }
+
+      // Redirect to the success URL
+      res.redirect('https://resonant-cannoli-12adc6.netlify.app/user/payment/Success');
+    } else {
+      console.log("Failed to update payment status.");
+    }
+  } catch (error) {
+    console.error("Error updating payment status:", error);
+  }
+});
 
 
 
@@ -4463,10 +4517,10 @@ app.get("/get/invoice/insights", async (req, res) => {
             {
               $group: {
                 _id: null,
-                totalAmount: { $sum: "$amount" },
-                totalExpenses: { $sum: "$expenses" },
-                totalBalance: { $sum: "$balance" },
-                payments: { $sum: { $subtract: ["$amount", "$balance"] } }
+                totalAmount: { $sum: "$amount" }, //  sum of all pending amount in invoices
+                // totalExpenses: { $sum: "$expenses" },
+                totalBalance: { $sum: "$balance" }, // sum of received payment in invoices
+                payments: { $sum: { $subtract: ["$amount", "$balance"] } } // calculate due amount
               }
             }
           ],
@@ -4488,7 +4542,7 @@ app.get("/get/invoice/insights", async (req, res) => {
     const data = invoiceInsight[0].total.length > 0 ? invoiceInsight[0] : {
       total: [{
         totalAmount: null,
-        totalExpenses: null,
+        // totalExpenses: null,
         totalBalance: null,
         payments: null
       }],

@@ -23,11 +23,11 @@ const invoiceSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    amount: {
+    amount: { // this represent the amount of invoice
         type: Number,
         required: true
     },
-    balance: {
+    balance: { // this  represent the amount received in payment
         type: Number,
         required: true
     },
@@ -42,11 +42,6 @@ const invoiceSchema = new mongoose.Schema({
     pdf: {
         data: Buffer, // Store PDF data as Buffer
         contentType: String // Mime type of the PDF
-    },
-    expense: {
-        type: Number,
-        default: 0,
-        required: true
     }
 
 }, {
