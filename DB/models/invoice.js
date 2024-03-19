@@ -10,6 +10,11 @@ const invoiceSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    OrderID: {
+        type: String,
+        required: true,
+        unique: true
+    },
     user: {
         type: String,
         required: true

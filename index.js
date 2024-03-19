@@ -38,8 +38,8 @@ const paypal = require('paypal-rest-sdk');
 // Configure PayPal
 paypal.configure({
   mode: 'sandbox', // Change to 'live' for production
-  client_id: '',  // your client id
-  client_secret: ''  // client secret key
+  client_id: 'AQFBo75zRzoLMjPRVMWdIWMydlJI8hZg5medllvwmMrs2YTh3i-YEsBY3bn0M3Bkhj74dR2Is-goYELh',  // your client id
+  client_secret: 'EKwVQqJrHn_0SoGYPkDyBD05EIW--6bpKrV0uGU4LTbgbz5w5huY0lOa890iNAQrmL6yjvU1JbZecigB'  // client secret key
 });
 
 app.use(express.json());
@@ -1294,6 +1294,14 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
   let mailtext = "";
   let mailsubject = "";
 
+  // Check if an invoice already exists for the orderID
+  const existingInvoice = await Invoice.findOne({ OrderID: Orderid });
+
+  // If an invoice already exists, return a 401 error
+  if (existingInvoice) {
+    return resp.status(401).json({ error: 'An invoice already exists for this order.' });
+  }
+
   // Access the users collection using Mongoose connection
   const usersCollection = mongoose.connection.db.collection('users');
 
@@ -1302,7 +1310,6 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
     { $unwind: "$orders" }, // Unwind to work with individual orders
     { $match: { "orders.orderid": Orderid } }, // Match the order ID
   ]).toArray();
-
 
   // if no user found who have provider order id  found 
   if (!usersWithOrders || usersWithOrders.length === 0) {
@@ -1329,9 +1336,17 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
 
   await browser.close();
 
-  // Set due date 10 days from today's date
-  const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + 10);
+
+  // set due date which is last date of current month
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+
+  // Get the last day of the current month
+  const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+
+  // Set the due date to the last day of the current month
+  const dueDate = new Date(year, month, lastDayOfMonth);
 
   // Save invoice details to MongoDB
   const newInvoice = new Invoice({
@@ -1339,6 +1354,7 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
     invoiceNumber: invoiceNumber,
     user: usersWithOrders[0].name + " " + usersWithOrders[0].lastname, // Assuming 'name' is the property containing the user's name
     userID: usersWithOrders[0].userid,
+    OrderID: Orderid,
     amount: (usersWithOrders[0].orders.pricepercard * usersWithOrders[0].orders.cardcount) + usersWithOrders[0].orders.caculatedinsurancecost, // Example amount
     balance: (usersWithOrders[0].orders.pricepercard * usersWithOrders[0].orders.cardcount) + usersWithOrders[0].orders.caculatedinsurancecost, // Example balance
     dueDate: dueDate,
@@ -1358,8 +1374,8 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
       payment_method: 'paypal'
     },
     redirect_urls: {
-      return_url: 'http://localhost:3000/user/dashbaord',
-      cancel_url: 'http://localhost:3000/user/payment/Failed'
+      return_url: 'https://resonant-cannoli-12adc6.netlify.app/user/payment/Success',
+      cancel_url: 'https://resonant-cannoli-12adc6.netlify.app/user/payment/Failed'
     },
     transactions: [{
       amount: {

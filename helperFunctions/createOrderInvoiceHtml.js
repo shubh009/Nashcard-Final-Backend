@@ -1,7 +1,5 @@
 const createOrderInvoiceHtml = (user, invoiceNumber) => {
 
-    console.log("user = ", user[0].orders.cardsaverqty)
-
     // today date format - October 9, 2023
     const todayDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -218,7 +216,7 @@ const createOrderInvoiceHtml = (user, invoiceNumber) => {
                 <div class="logo_container">
     
                     <img class=""
-                        src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Free_logo.svg/1200px-Free_logo.svg.png" />
+                        src="https://nashcards.com/wp-content/uploads/2022/05/mailLogo1@0.5x-2.png" />
                     <div>
                         <!-- Text below logo -->
                         <div class="below_logo_text">
@@ -271,13 +269,6 @@ const createOrderInvoiceHtml = (user, invoiceNumber) => {
                         <td>$0</td>
                         <td>1</td>
                         <td class="line_total_column">$0.00</td>
-                    </tr>
-                    <tr class="table_body_row">
-                        <td class="item_column">Return Shipping Insurance</td>
-                        <td>$${user[0].orders.insuranceamount} of Return Insurance</td>
-                        <td>$${user[0].orders.calculatedinsurancecost}</td>
-                        <td>1</td>
-                        <td class="line_total_column">$${user[0].orders.insuranceamount * user[0].orders.calculatedinsurancecost}</td>
                     </tr>
                     <tr class="table_body_row">
                         <td class="item_column">Upcharges/Deductions </td>
