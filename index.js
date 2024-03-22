@@ -4527,13 +4527,28 @@ app.get("/get/invoice/insights", async (req, res) => {
           pendingCount: [
             {
               $match: {
-                status: "pending"
+                status: { $in: ["pending", "Pending"] }
               }
             },
             {
               $count: "pendingCount"
             }
-          ]
+          ],
+          paidCount: [
+            {
+              $match: {
+                status: { $in: ["paid", "Paid"] }
+              }
+            },
+            {
+              $count: "paidCount"
+            }
+          ],
+          totalCount: [ // New facet stage for total count
+          {
+            $count: "totalCount"
+          }
+        ]
         }
       }
     ]);
