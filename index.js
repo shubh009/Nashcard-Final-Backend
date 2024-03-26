@@ -1289,7 +1289,7 @@ app.patch("/updateOrderStatus", async (req, resp) => {
 
 app.post("/sendOrderStatusOnEmail", async (req, resp) => {
 
-  
+
   // create invoice here and send to user just 
   let Orderid = req.body.orderId;
   let OrderStatus = req.body.OrderStatus;
@@ -1379,7 +1379,7 @@ app.post("/sendOrderStatusOnEmail", async (req, resp) => {
     },
     redirect_urls: {
       return_url: `http://localhost:8000/api/payment/success?orderId=${Orderid}&userId=${usersWithOrders[0].userid}&totalAmount=${totalAmount}&invoiceNumber=${invoiceNumber}`,
-      cancel_url: 'https://resonant-cannoli-12adc6.netlify.app/user/payment/Failed'
+      cancel_url: 'http://localhost:3000/user/payment/Failed'
     },
     transactions: [{
       amount: {
@@ -1531,7 +1531,7 @@ app.get("/api/payment/success", async (req, res) => {
 
   try {
 
-    let updateUserOrder  = await usersCollection.aggregate([
+    let updateUserOrder = await usersCollection.aggregate([
       { $unwind: "$orders" }, // Unwind to work with individual orders
       { $match: { "orders.orderid": orderId } }, // Match the order ID
       {
@@ -1540,7 +1540,7 @@ app.get("/api/payment/success", async (req, res) => {
         }
       }
     ]).toArray();
-    
+
 
     // Check if the order was successfully updated
     if (updateUserOrder) {
@@ -1560,7 +1560,7 @@ app.get("/api/payment/success", async (req, res) => {
       }
 
       // Redirect to the success URL
-      res.redirect('https://resonant-cannoli-12adc6.netlify.app/user/payment/Success');
+      res.redirect('http://localhost:3000/user/payment/Success');
     } else {
       console.log("Failed to update payment status.");
     }
@@ -4545,10 +4545,10 @@ app.get("/get/invoice/insights", async (req, res) => {
             }
           ],
           totalCount: [ // New facet stage for total count
-          {
-            $count: "totalCount"
-          }
-        ]
+            {
+              $count: "totalCount"
+            }
+          ]
         }
       }
     ]);
@@ -4694,6 +4694,78 @@ app.patch("/add/new/delivery/address/with/emailed/link", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 
+});
+
+
+// add  delivery address
+app.get("/get/delivery/address/:orderID", async (req, res) => {
+  const { orderID } = req.params;
+
+  try {
+    // Find the delivery address based on the order ID
+    const address = await newDeliveryAddress.findOne({ orderID });
+
+    if (!address) {
+      return res.status(404).json({ message: "Delivery address not found for the provided order ID" });
+    }
+
+    // Extracting only the address-related fields
+    const { pincode, city, state, country, pickup } = address;
+
+    // Return only the address-related fields in the response
+    res.json({ message: "Previous delivery address found ", pincode: pincode, city: city, state: state, country: country, pickup:pickup });
+
+  } catch (error) {
+    console.error("Error retrieving delivery address:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+//  add or update delivery address
+app.post("/add/delivery/address", async (req, res) => {
+  const { orderID, state, country, city, pincode, pickup } = req.body;
+
+  try {
+    let address = await newDeliveryAddress.findOne({ orderID });
+
+    if (!address) {
+      // If address not found, create a new one
+      address = new newDeliveryAddress({
+        orderID,
+        state,
+        country,
+        city,
+        pincode,
+        pickup
+      });
+    } else {
+      // If address found, update it
+      address.state = pickup ? "" : state;
+      address.country = pickup ? "" : country;
+      address.city = pickup ? "" : city;
+      address.pincode = pickup ? "" : pincode;
+      address.pickup = pickup;
+    }
+
+    // Save the address (whether new or updated)
+    await address.save();
+
+    const usersCollection = mongoose.connection.db.collection('users');
+
+    const userPaymentLink = await usersCollection.aggregate([
+      { $unwind: "$orders" }, // Unwind to work with individual orders
+      { $match: { "orders.orderid": orderID } }, // Match the order ID
+    ]).toArray();
+
+    
+res.json({ message: "Delivery preference has been updated successfully.", paymentLink: userPaymentLink[0].orders.paymentlink });
+
+
+  } catch (error) {
+    console.error("Error adding/updating delivery address:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 

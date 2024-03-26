@@ -6,30 +6,23 @@ const newDeliveryAddressSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
-    userID: {
-        type: String,
-        required: true,
-    },
     pincode: {
         type: String,
-        required: true,
         default:0,
     },
     city: {
         type: String,
-        required: true,
         default:" ",
     },
     state: {
         type: String,
-        required: true,
         default:" ",
     },
     country: {
         type: String,
-        required: true,
         default:" ",
-    }
+    },
+    pickup:{type: Boolean, required:true} // true if user select pickup, false if user wants to delivery on his address
 }, {
     timestamps: true,
 });
